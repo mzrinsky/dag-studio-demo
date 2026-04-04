@@ -6,6 +6,51 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import Draggable from "react-draggable";
 import { Ports, PortProps } from "@/components/port";
 
+// Global node manager for z-index management
+const nodeManager = {
+  nodes: new Map<string, { zIndex: number }>(),
+  highestZIndex: 1,
+  
+  // Get the current z-index for a node
+  getNodeZIndex: (id: string) => {
+    const node = nodeManager.nodes.get(id);
+    return node ? node.zIndex : 1;
+  },
+  
+  // Bring a node to the front
+  bringToFront: (id: string) => {
+    // First, update the highest z-index
+    nodeManager.highestZIndex += 1;
+    
+    // Update this node's z-index
+    nodeManager.nodes.set(id, { zIndex: nodeManager.highestZIndex });
+    
+    // Update all other nodes to shift down
+    nodeManager.nodes.forEach((node, nodeId) => {
+      if (nodeId !== id && node.zIndex > nodeManager.highestZIndex - 1) {
+        node.zIndex = node.zIndex - 1;
+      }
+    });
+    
+    return nodeManager.highestZIndex;
+  },
+  
+  // Remove a node from tracking
+  removeNode: (id: string) => {
+    nodeManager.nodes.delete(id);
+  },
+  
+  // Initialize a node
+  initNode: (id: string) => {
+    if (!nodeManager.nodes.has(id)) {
+      nodeManager.highestZIndex += 1;
+      nodeManager.nodes.set(id, { zIndex: nodeManager.highestZIndex });
+      return nodeManager.highestZIndex;
+    }
+    return nodeManager.getNodeZIndex(id);
+  }
+};
+
 export interface NodeProps {
   id: string;
   title?: string;
@@ -38,12 +83,26 @@ export const Node = React.forwardRef<HTMLDivElement, NodeProps>(
     ...props 
   }, ref) => {
     const [nodePosition, setNodePosition] = React.useState(position);
+    const [zIndex, setZIndex] = React.useState(1);
     const nodeElementRef = React.useRef<HTMLDivElement>(null);
     const isDragging = React.useRef(false);
+
+    // Initialize the node when component mounts
+    React.useEffect(() => {
+      const initialZIndex = nodeManager.initNode(id);
+      setZIndex(initialZIndex);
+      return () => {
+        nodeManager.removeNode(id);
+      };
+    }, [id]);
 
     const handleClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       onNodeClick?.(id);
+      
+      // Bring to front on click
+      const newZIndex = nodeManager.bringToFront(id);
+      setZIndex(newZIndex);
     };
 
     const handleDoubleClick = (e: React.MouseEvent) => {
@@ -59,23 +118,15 @@ export const Node = React.forwardRef<HTMLDivElement, NodeProps>(
 
     const handleStart = () => {
       isDragging.current = true;
+      // Bring node to front when dragging starts
+      const newZIndex = nodeManager.bringToFront(id);
+      setZIndex(newZIndex);
     };
 
     const handleStop = () => {
       isDragging.current = false;
+      // No need to reset z-index - it's already managed by the node manager
     };
-
-    // // Update position when external position changes
-    // this is conflicting
-    // React.useEffect(() => {
-    //   // Only update if position has actually changed
-    //   if (!isDragging.current) {
-    //     if (nodePosition.x !== position.x || nodePosition.y !== position.y) {
-    //       //setNodePosition(position);
-    //       console.debug('Node position changed: ', { nodePosition, position });
-    //     }
-    //   }
-    // }, [position, nodePosition]);
 
     return (
       <Draggable
@@ -97,7 +148,7 @@ export const Node = React.forwardRef<HTMLDivElement, NodeProps>(
           onDoubleClick={handleDoubleClick}
           style={{
             position: 'absolute',
-            zIndex: 1
+            zIndex
           }}
           {...props}
         >

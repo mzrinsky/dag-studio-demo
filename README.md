@@ -4,6 +4,9 @@
 
 DAG Studio moves beyond simple node-graph visualization. It is a specialized, high-performance framework designed to model, visualize, and execute complex, multi-stage data transformations using a highly decoupled architecture.
 
+> [!IMPORTANT]
+> **Work in Progress:** This project is currently in the Proof-of-Concept (POC) phase. The architectural plan and technical specifications are more mature than the current implementation. Expect rapid iterations as the vision is translated into code.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status: POC](https://img.shields.io/badge/Status-POC-blue.svg)]()
 [![Tech Stack](https://img.shields.io/badge/React%2019+-indigo.svg)]()
@@ -19,46 +22,47 @@ The primary innovation of DAG Studio is the strict architectural separation betw
 The framework is built around four core, interconnected components:
 
 ### 1. The Hierarchy (The Flow Structure)
-*   **`<DAGFlow>`**: The root context provider. Manages global systems like the coordinate system (D3) and the central Connection/Node managers.
-*   **`<Node>` (Presentation Shell)**: The "dumb" container. Responsible *only* for layout and visual structure. It holds no business logic or flow state itself.
-*   **`<Ports>` (Binding Engine)**: The intelligence layer. This component wraps the visual shell, acting as the declaration point for inputs/outputs and bridging the component's internal state to the global graph state.
+*   **`<DAGFlow>`**: The root context provider. Manages global systems like the coordinate system (D3), connection manager (edges), node manager (z-index/layout), and the `historyManager` (undo/redo).
+*   **`<Node>` (Presentation Shell)**: The "dumb" container. Responsible *only* for layout and visual structure. It holds no business logic or flow state.
+*   **`<Ports>` (Binding Engine)**: The intelligence layer. This component wraps the visual shell, acting as the declaration point for inputs/outputs and bridging the component's internal state to the global graph.
 *   **`<Handle>`**: The physical, interactive connection points.
 
 ### 2. Identity & State Management (Robustness)
 To ensure stability across React re-renders, we enforce a **Self-Registering Identity** pattern:
-*   **UUID Mandate**: Every Node and Port *must* have a stable, unique ID.
-*   **Zustand Global Registry**: All positions and states are globally registered in a Zustand store, allowing connection managers to track dependencies outside the ephemeral React component tree.
-*   **Performance Ref Binding**: The `nodeRef` property is specifically designed to bind to a direct **React Ref**, enabling the `Ports` engine to read high-frequency data changes directly from the underlying component instance without causing unnecessary re-renders.
+*   **UUID Mandate**: Every Node and Port *must* have a stable, unique ID to prevent reconciliation errors.
+*   **Zustand Global Registry**: All positions and states are globally registered, allowing the system to track dependencies without relying on the ephemeral React component tree.
+*   **State Partitioning**: The system distinguishes between *Transient State* (e.g., dragging) and *Committed State* (e.g., node placed) to optimize history and undo/redo performance.
+*   **Performance Ref Binding**: The `nodeRef` property binds to a direct **React Ref**, enabling the `Ports` engine to read high-frequency data changes directly from the component instance, bypassing unnecessary re-renders.
 
 ### 3. Hybrid Execution Model (Computational Depth)
-We support two fundamentally different ways data can flow:
+We support two concurrent data-flow modes to balance responsiveness with heavy processing:
 
 *   🟢 **Reactive Flow (`onChange`)**:
     *   **Trigger**: Immediate change detection.
-    *   **Use Case**: UI updates, live calculations (e.g., a slider reading a value).
-    *   **Behavior**: Data propagates immediately as a stream.
+    *   **Use Case**: UI updates, live calculations, sliders, and real-time previews.
+    *   **Behavior**: Data propagates immediately as a stream through the graph.
 *   🟠 **Imperative Flow (`onProcess`)**:
-    *   **Trigger**: Manual user action (e.g., clicking "Run").
-    *   **Use Case**: Heavy computation, API calls, background jobs.
-    *   **Behavior**: The operation is registered as an asynchronous "Job," waiting for prerequisites to resolve before execution.
+    *   **Trigger**: Manual user action (e.g., "Run" button) or scheduled events.
+    *   **Use Case**: Heavy computation, API calls, and long-running background jobs.
+    *   **Behavior**: Operations are registered as asynchronous "Jobs," waiting for prerequisite dependencies to resolve before execution.
 
 ---
 
 ## 📜 Developer Guardrails (The Laws)
 
-These laws enforce predictable and maintainable code:
+To maintain the integrity of the graph, all contributions must follow these laws:
 
 1.  **Law of Decoupling**: Business logic *never* lives in `<Node>`. It belongs in the `Ports` declaration or the wrapped worker component.
 2.  **Law of Binding**: Every data ingress or egress point must be explicitly declared within the `<Ports>` metadata.
 3.  **Law of Identity**: Never rely on array indices for keys; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** use `onProcess` to protect the main UI thread.
+5.  **Law of Gradual Typing**: Port types are optional (defaulting to `any`) to allow rapid prototyping, but should be added incrementally to enhance stability.
 
 ---
 
-## 🚀 Implementation Example (Pseudo-Code Context)
+## 🚀 Implementation Example (Pseudo-Code)
 
 ```jsx
-// The framework handles UUID registration and Zustand synchronization automatically.
 <DAGFlow connectionManager={connManager} nodeManager={nodeManager}>
     <Node connectionManager={connManager} nodeManager={nodeManager}>
         <Ports
@@ -66,23 +70,21 @@ These laws enforce predictable and maintainable code:
             inputs={[
                 {
                     label: "Live Signal",
-                    nodeRef: myComponentRef, // Direct Ref Binding for performance
-                    onChange: (val) => { 
-                        // Reactive: Immediate push update
-                    }
+                    type: "number", // Optional: ConnectionManager prevents invalid links
+                    nodeRef: myComponentRef, 
+                    onChange: (val) => { /* Reactive: Immediate push */ }
                 }
             ]}
             outputs={[
                 {
                     label: "Heavy Compute",
                     onProcess: async () => { 
-                        // Imperative: Registers a background Job
+                        /* Imperative: Runs as a registered job */
                         return await performHeavyTask();
                     }
                 }
             ]}
         >
-            {/* The wrapped component contains the actual worker logic */}
             <MyWorkerComponent ref={myComponentRef} />
         </Ports>
     </Node>
@@ -97,4 +99,4 @@ These laws enforce predictable and maintainable code:
 *   **Interaction/Layout**: d3-drag, d3-zoom
 
 ***
-*Disclaimer: This repository represents a Proof of Concept (POC) adhering to the detailed technical specification provided.*
+*Disclaimer: This repository represents a Proof of Concept (POC). The architectural vision described above is the target goal for the current implementation.*

@@ -4,7 +4,7 @@
 DAG Studio is a visual programming framework centered around **Data Ports**. The architecture strictly decouples visual presentation from data flow management.
 
 ### The Hierarchy
-*   **`<DAGFlow>`**: The root provider. Manages the global coordinate system (via D3), the connection manager (edge drawing), and the node manager (z-index/layout).
+*   **`<DAGFlow>`**: The root provider. Manages the global coordinate system (via D3), the connection manager (edge drawing), the node manager (z-index/layout), and the optional `historyManager` for undo/redo functionality.
 *   **`<Node>` (Presentation Shell)**: A "dumb" structural container. Responsible for layout, visual encapsulation, and hosting Ports. It must not contain business logic or state management for data flow.
 *   **`<Ports>` (Binding Engine)**: The intelligence layer. Wraps React components to declare the node's interface. It bridges the internal component state to the global graph.
 *   **`<Handle>`**: The physical connection points for inputs and outputs.
@@ -12,8 +12,9 @@ DAG Studio is a visual programming framework centered around **Data Ports**. The
 ## 2. Identity & State Management
 To ensure stability across React re-renders, the system uses a **Self-Registering Identity** pattern.
 
-*   **UUIDs**: Every Node and Port must have a unique ID. If an ID is not provided via props, the component must auto-generate a UUID upon mounting.
+*   **UUIDs**: Every Node and Port must have a unique ID. // ... existing code ...
 *   **Zustand Registry**: All IDs and their corresponding positions/states are registered in a global Zustand store. This allows the Connection Manager to track dependencies without relying on the React component tree.
+*   **State Persistence & History**: To prevent undo-history bloat, the system distinguishes between *Transient State* (e.g., active dragging, slider sliding) and *Committed State* (e.g., connection created, node dropped). Only Committed State is pushed to the `historyManager`.
 *   **The `nodeRef` Binding**: The `nodeRef` property in Port configurations must bind to a **React Ref**. This allows the `Ports` engine to interact directly with the underlying component instance, bypassing unnecessary re-renders for high-frequency data updates.
 
 ## 3. Hybrid Execution Model
@@ -36,6 +37,7 @@ The system supports two concurrent data-flow modes. The distinction is defined b
 2.  **Law of Binding**: All data entering or leaving a component must be declared in the `<Ports>` metadata.
 3.  **Law of Identity**: Never use array indices as keys for nodes or ports; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** be implemented via `onProcess` to prevent blocking the main UI thread.
+5.  **Law of Gradual Typing**: Port types are optional. All ports default to `any` to ensure a low barrier for custom node creation. Type validation should be additive—enhancing stability without obstructing rapid prototyping.
 
 ## 5. Implementation Example (Pseudo-code)
 
@@ -49,6 +51,7 @@ The system supports two concurrent data-flow modes. The distinction is defined b
             inputs={[
                 {
                     label: "Live Signal",
+                    type: "number", // Optional: if provided, ConnectionManager prevents invalid links
                     nodeRef: myComponentRef, // Bound to the actual React Ref
                     onChange: (val) => { 
                         /* Reactive: Push update to downstream immediately */ 

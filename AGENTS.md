@@ -1,20 +1,24 @@
 # DAG Studio Technical Specification
 
 ## 1. Core Architecture
-DAG Studio is a visual programming framework centered around **Data Ports**. The architecture strictly decouples visual presentation from data flow management.
+DAG Studio is a visual programming framework centered around **Data Ports**. The architecture strictly decouples visual presentation from data flow management by centralizing all graph logic in a global state engine.
 
 ### The Hierarchy
-*   **`<DAGFlow>`**: The root provider. Manages the global coordinate system (via D3), the connection manager (edge drawing), the node manager (z-index/layout), and the optional `historyManager` for undo/redo functionality.
+*   **`<DAGFlow>`**: The root visual context. Manages the global coordinate system (via D3) and provides the canvas for rendering nodes and connections.
+*   **`<ConnectionCanvas>`**: A pure view layer. Subscribes to the store's connection state and renders SVG edges between ports.
 *   **`<Node>` (Presentation Shell)**: A "dumb" structural container. Responsible for layout, visual encapsulation, and hosting Ports. It must not contain business logic or state management for data flow.
 *   **`<Ports>` (Binding Engine)**: The intelligence layer. Wraps React components to declare the node's interface. It bridges the internal component state to the global graph.
 *   **`<Handle>`**: The physical connection points for inputs and outputs.
 
 ## 2. Identity & State Management
-To ensure stability across React re-renders, the system uses a **Self-Registering Identity** pattern.
+The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure stability, persistence, and predictable data flow.
 
-*   **UUIDs**: Every Node and Port must have a unique ID. // ... existing code ...
-*   **Zustand Registry**: All IDs and their corresponding positions/states are registered in a global Zustand store. This allows the Connection Manager to track dependencies without relying on the React component tree.
-*   **State Persistence & History**: To prevent undo-history bloat, the system distinguishes between *Transient State* (e.g., active dragging, slider sliding) and *Committed State* (e.g., connection created, node dropped). Only Committed State is pushed to the `historyManager`.
+*   **UUIDs**: Every Node and Port must have a unique ID. Array indices are strictly forbidden as keys.
+*   **Global Registry**: All node positions, z-indices, port values, and connection mappings are stored in the `useGraphStore`. This allows for logic (like connection validation) to exist independently of the React component tree.
+*   **Z-Index Management**: Node layering is treated as state within the store, allowing for "Bring to Front" functionality and persistence across sessions.
+*   **State Persistence & History**: 
+    *   **Transient State**: High-frequency updates (e.g., dragging a node) update the store directly for immediate UI feedback.
+    *   **Committed State**: Structural changes (e.g., creating a connection, adding a node) are wrapped in a `Command` pattern and pushed to the `historyManager` for undo/redo support.
 *   **The `nodeRef` Binding**: The `nodeRef` property in Port configurations must bind to a **React Ref**. This allows the `Ports` engine to interact directly with the underlying component instance, bypassing unnecessary re-renders for high-frequency data updates.
 
 ## 3. Hybrid Execution Model
@@ -32,27 +36,35 @@ The system supports two concurrent data-flow modes. The distinction is defined b
 *   **Use Case**: API calls, heavy computations, background worker processes, and long-running jobs.
 *   **Implementation**: Mapped to the `onProcess` handler in the Port definition.
 
+### C. Persistent Flow (`onCommit`)
+*   **Trigger**: Finalization (e.g., `onBlur`, `Enter` key, or explicit "Save").
+*   **Behavior**: Transitions a "Draft" value to a "Committed" value. This is the trigger for database persistence or permanent configuration updates.
+*   **Use Case**: Saving user settings, updating node configurations, persisting graph state.
+*   **Implementation**: Mapped to the `onCommit` handler in the Port definition.
+
 ## 4. Developer Guardrails (The Laws)
-1.  **Law of Decoupling**: No business logic in `<Node>`. Logic belongs in the `Ports` configuration or the wrapped component.
+1.  **Law of Decoupling**: No business logic in `<Node>`. Logic belongs in the store actions, the `Ports` configuration, or the wrapped component.
 2.  **Law of Binding**: All data entering or leaving a component must be declared in the `<Ports>` metadata.
 3.  **Law of Identity**: Never use array indices as keys for nodes or ports; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** be implemented via `onProcess` to prevent blocking the main UI thread.
-5.  **Law of Gradual Typing**: Port types are optional. All ports default to `any` to ensure a low barrier for custom node creation. Type validation should be additive—enhancing stability without obstructing rapid prototyping.
+5.  **Law of Strict Typing**: Every port must have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability.
+
 
 ## 5. Implementation Example (Pseudo-code)
 
 ```jsx
-// The wrapper components handle the UUID registration and Zustand sync internally.
-<DAGFlow connectionManager={connManager} nodeManager={nodeManager}>
-    <Node connectionManager={connManager} nodeManager={nodeManager}>
+// UI components now simply subscribe to the store and trigger actions
+<DAGFlow>
+    <ConnectionCanvas /> {/* Purely renders lines from store.connections */}
+    
+    <Node>
         <Ports
-            connectionManager={connManager} nodeManager={nodeManager}
-            // Identity: UUID auto-generated if not provided
+            // Identity: UUID auto-generated by store registration
             inputs={[
                 {
                     label: "Live Signal",
-                    type: "number", // Optional: if provided, ConnectionManager prevents invalid links
-                    nodeRef: myComponentRef, // Bound to the actual React Ref
+                    type: "number", // REQUIRED: Type must be explicitly defined
+                    nodeRef: myComponentRef, 
                     onChange: (val) => { 
                         /* Reactive: Push update to downstream immediately */ 
                     }
@@ -61,6 +73,7 @@ The system supports two concurrent data-flow modes. The distinction is defined b
             outputs={[
                 {
                     label: "Heavy Compute",
+                    type: "string", // REQUIRED: Type must be explicitly defined
                     onProcess: async () => { 
                         /* Imperative: Run as a registered job */ 
                         return await performHeavyTask();
@@ -68,7 +81,6 @@ The system supports two concurrent data-flow modes. The distinction is defined b
                 }
             ]}
         >
-            {/* The wrapped component is the actual worker */}
             <MyWorkerComponent ref={myComponentRef} />
         </Ports>
     </Node>
@@ -78,5 +90,5 @@ The system supports two concurrent data-flow modes. The distinction is defined b
 ## 6. Tech Stack
 *   **Framework**: Next.js 16, React 19+
 *   **Styling**: Tailwind CSS, shadcn/ui
-*   **State**: Zustand
+*   **State**: Zustand (with Immer and Persist middleware)
 *   **Interaction**: d3-drag, d3-zoom

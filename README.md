@@ -22,29 +22,36 @@ The primary innovation of DAG Studio is the strict architectural separation betw
 The framework is built around four core, interconnected components:
 
 ### 1. The Hierarchy (The Flow Structure)
-*   **`<DAGFlow>`**: The root context provider. Manages global systems like the coordinate system (D3), connection manager (edges), node manager (z-index/layout), and the `historyManager` (undo/redo).
+*   **`<DAGFlow>`**: The root context provider. Manages the global coordinate system (D3) and provides the canvas for rendering nodes and connections.
+*   **`<ConnectionCanvas>`**: A pure view layer that subscribes to the global store to render SVG edges between ports.
 *   **`<Node>` (Presentation Shell)**: The "dumb" container. Responsible *only* for layout and visual structure. It holds no business logic or flow state.
 *   **`<Ports>` (Binding Engine)**: The intelligence layer. This component wraps the visual shell, acting as the declaration point for inputs/outputs and bridging the component's internal state to the global graph.
 *   **`<Handle>`**: The physical, interactive connection points.
 
 ### 2. Identity & State Management (Robustness)
-To ensure stability across React re-renders, we enforce a **Self-Registering Identity** pattern:
-*   **UUID Mandate**: Every Node and Port *must* have a stable, unique ID to prevent reconciliation errors.
-*   **Zustand Global Registry**: All positions and states are globally registered, allowing the system to track dependencies without relying on the ephemeral React component tree.
-*   **State Partitioning**: The system distinguishes between *Transient State* (e.g., dragging) and *Committed State* (e.g., node placed) to optimize history and undo/redo performance.
-*   **Performance Ref Binding**: The `nodeRef` property binds to a direct **React Ref**, enabling the `Ports` engine to read high-frequency data changes directly from the component instance, bypassing unnecessary re-renders.
+To ensure stability and persistence, DAG Studio utilizes a **Centralized State Engine** (Zustand + Immer):
+*   **UUID Mandate**: Every Node and Port *must* have a stable, unique ID. Array indices are strictly forbidden as keys.
+*   **Global Registry**: All positions, z-indices, and connection mappings are stored in a global store (`useGraphStore`), allowing logic to exist independently of the React component tree.
+*   **State Partitioning**: 
+    *   **Transient State**: High-frequency updates (e.g., dragging) update the store directly for immediate feedback.
+    *   **Committed State**: Structural changes are wrapped in a `Command` pattern for undo/redo support via a `historyManager`.
+*   **Performance Ref Binding**: The `nodeRef` property binds to a direct **React Ref**, enabling the `Ports` engine to interact with component instances without triggering unnecessary re-renders.
 
 ### 3. Hybrid Execution Model (Computational Depth)
-We support two concurrent data-flow modes to balance responsiveness with heavy processing:
+We support three concurrent data-flow modes to balance responsiveness, persistence, and heavy processing:
 
 *   🟢 **Reactive Flow (`onChange`)**:
     *   **Trigger**: Immediate change detection.
-    *   **Use Case**: UI updates, live calculations, sliders, and real-time previews.
+    *   **Use Case**: UI updates, live calculations, and real-time previews.
     *   **Behavior**: Data propagates immediately as a stream through the graph.
 *   🟠 **Imperative Flow (`onProcess`)**:
     *   **Trigger**: Manual user action (e.g., "Run" button) or scheduled events.
     *   **Use Case**: Heavy computation, API calls, and long-running background jobs.
-    *   **Behavior**: Operations are registered as asynchronous "Jobs," waiting for prerequisite dependencies to resolve before execution.
+    *   **Behavior**: Operations are registered as asynchronous "Jobs," waiting for prerequisite dependencies to resolve.
+*   🔵 **Persistent Flow (`onCommit`)**:
+    *   **Trigger**: Finalization (e.g., `onBlur`, `Enter` key, or explicit "Save").
+    *   **Use Case**: Database persistence, saving user settings, or permanent configuration updates.
+    *   **Behavior**: Transitions a "Draft" value to a "Committed" state.
 
 ---
 
@@ -52,25 +59,25 @@ We support two concurrent data-flow modes to balance responsiveness with heavy p
 
 To maintain the integrity of the graph, all contributions must follow these laws:
 
-1.  **Law of Decoupling**: Business logic *never* lives in `<Node>`. It belongs in the `Ports` declaration or the wrapped worker component.
+1.  **Law of Decoupling**: Business logic *never* lives in `<Node>`. It belongs in the `Ports` declaration, the store actions, or the wrapped worker component.
 2.  **Law of Binding**: Every data ingress or egress point must be explicitly declared within the `<Ports>` metadata.
 3.  **Law of Identity**: Never rely on array indices for keys; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** use `onProcess` to protect the main UI thread.
-5.  **Law of Gradual Typing**: Port types are optional (defaulting to `any`) to allow rapid prototyping, but should be added incrementally to enhance stability.
+5.  **Law of Strict Typing**: Every port **must** have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows.
 
 ---
 
 ## 🚀 Implementation Example (Pseudo-Code)
 
 ```jsx
-<DAGFlow connectionManager={connManager} nodeManager={nodeManager}>
-    <Node connectionManager={connManager} nodeManager={nodeManager}>
+<DAGFlow>
+    <ConnectionCanvas />
+    <Node>
         <Ports
-            connectionManager={connManager} nodeManager={nodeManager}
             inputs={[
                 {
                     label: "Live Signal",
-                    type: "number", // Optional: ConnectionManager prevents invalid links
+                    type: "number", // REQUIRED: Type must be explicitly defined
                     nodeRef: myComponentRef, 
                     onChange: (val) => { /* Reactive: Immediate push */ }
                 }
@@ -78,6 +85,7 @@ To maintain the integrity of the graph, all contributions must follow these laws
             outputs={[
                 {
                     label: "Heavy Compute",
+                    type: "string", // REQUIRED: Type must be explicitly defined
                     onProcess: async () => { 
                         /* Imperative: Runs as a registered job */
                         return await performHeavyTask();
@@ -95,7 +103,7 @@ To maintain the integrity of the graph, all contributions must follow these laws
 
 *   **Framework**: Next.js 16, React 19+
 *   **Styling**: Tailwind CSS, shadcn/ui
-*   **State Management**: Zustand
+*   **State Management**: Zustand (with Immer and Persist middleware)
 *   **Interaction/Layout**: d3-drag, d3-zoom
 
 ***

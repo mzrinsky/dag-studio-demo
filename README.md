@@ -19,7 +19,7 @@ The primary innovation of DAG Studio is the strict architectural separation betw
 
 ## ⚙️ Architecture Deep Dive
 
-The framework is built around four core, interconnected components:
+The framework is built around five core, interconnected components:
 
 ### 1. The Hierarchy (The Flow Structure)
 *   **`<DAGFlow>`**: The root context provider. Manages the global coordinate system (D3) and provides the canvas for rendering nodes and connections.

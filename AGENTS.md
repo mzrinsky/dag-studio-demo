@@ -6,9 +6,8 @@ DAG Studio is a visual programming framework centered around **Data Ports**. The
 ### The Hierarchy
 *   **`<DAGFlow>`**: The root visual context. Manages the global coordinate system (via D3) and provides the canvas for rendering nodes and connections.
 *   **`<ConnectionCanvas>`**: A pure view layer. Subscribes to the store's connection state and renders SVG edges between ports.
-*   **`<Node>` (Presentation Shell)**: A "dumb" structural container. Responsible for layout, visual encapsulation, and hosting Ports. It must not contain business logic or state management for data flow.
+*   **`<Node>` (Presentation Shell)**: A "dumb" structural container. Responsible for layout, visual encapsulation, and hosting one or more Port configurations. It acts as a spatial boundary; data flows between Ports, regardless of whether those Ports reside in the same Node or different ones.
 *   **`<Ports>` (Binding Engine)**: The intelligence layer. Wraps React components to declare the node's interface. It bridges the internal component state to the global graph.
-*   **`<Handle>`**: The physical connection points for inputs and outputs.
 
 ## 2. Identity & State Management
 The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure stability, persistence, and predictable data flow.
@@ -48,6 +47,7 @@ The system supports two concurrent data-flow modes. The distinction is defined b
 3.  **Law of Identity**: Never use array indices as keys for nodes or ports; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** be implemented via `onProcess` to prevent blocking the main UI thread.
 5.  **Law of Strict Typing**: Every port must have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability.
+6.  **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must prevent circular dependencies. While a Port may connect to another Port within the same Node (internal feedback), the global state engine must block any connection that creates a closed loop across the graph.
 
 
 ## 5. Implementation Example (Pseudo-code)

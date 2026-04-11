@@ -19,7 +19,7 @@ The primary innovation of DAG Studio is the strict architectural separation betw
 
 ## ⚙️ Architecture Deep Dive
 
-The framework is built around four core, interconnected components:
+The framework is built around five core, interconnected components:
 
 ### 1. The Hierarchy (The Flow Structure)
 *   **`<DAGFlow>`**: The root context provider. Manages the global coordinate system (D3) and provides the canvas for rendering nodes and connections.
@@ -51,7 +51,7 @@ We support three concurrent data-flow modes to balance responsiveness, persisten
 *   🔵 **Persistent Flow (`onCommit`)**:
     *   **Trigger**: Finalization (e.g., `onBlur`, `Enter` key, or explicit "Save").
     *   **Use Case**: Database persistence, saving user settings, or permanent configuration updates.
-    *   **Behavior**: Transitions a "Draft" value to a "Committed" state.
+    *   **Behavior**: Transitions a "Draft" value to a "Committed" state. This is the primary trigger for permanent configuration updates.
 
 ---
 
@@ -64,6 +64,7 @@ To maintain the integrity of the graph, all contributions must follow these laws
 3.  **Law of Identity**: Never rely on array indices for keys; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** use `onProcess` to protect the main UI thread.
 5.  **Law of Strict Typing**: Every port **must** have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows.
+6.  **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must block any connection that creates a closed loop across the graph (excluding internal node feedback).
 
 ---
 

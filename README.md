@@ -107,5 +107,30 @@ To maintain the integrity of the graph, all contributions must follow these laws
 *   **State Management**: Zustand (with Immer and Persist middleware)
 *   **Interaction/Layout**: d3-drag, d3-zoom
 
+---
+
+## 💖 Support & Sustainability
+
+DAG Studio is an ambitious open-source project. To keep the development momentum and maintain the high architectural standards required for this framework, support is greatly appreciated.
+
+### ☕ Individual Support
+If DAG Studio is helpful to your workflow, consider buying me a coffee!
+[![ko-fi](https://img.shields.io/badge/Ko-fi-f16233?style=for-the-badge&logo=ko-fi&logoColor=white&color=ff005c)](https://ko-fi.com/creamcitymatt)
+
+### 🏢 Corporate Sponsorship
+If your organization is building AI orchestration tools or complex data pipelines and would like to sponsor development, please [open a sponsorship issue](https://github.com/mzrinsky/dag-studio-demo/issues/new?template=sponsorship.yml) or reach out via [LinkedIn](https://www.linkedin.com/in/matt-zrinsky).
+
+---
+
+## 🎨 Inspirations & Lineage
+
+DAG Studio stands on the shoulders of giants. The architectural philosophy of this project is heavily inspired by the elegance of immediate-mode GUIs and the robustness of professional node-based editors:
+
+*   **Reaktor**: The pioneering influence of "patch cable" style software connectivity and modular signal routing.
+*   **Dear ImGui**: For the philosophy of high-performance, state-driven UI.
+*   **Tweakpane & dat.GUI**: For the mastery of compact, intuitive control interfaces.
+*   **LightGraph.js**: For the foundational approach to visual graph connectivity.
+*   **ComfyUI**: For demonstrating the power of DAGs in generative AI workflows.
+
 ***
 *Disclaimer: This repository represents a Proof of Concept (POC). The architectural vision described above is the target goal for the current implementation.*

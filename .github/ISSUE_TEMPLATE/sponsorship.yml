@@ -11,19 +11,19 @@ body:
     attributes:
       label: Organization Name
       placeholder: "e.g. AI Tech Corp"
-      required: true
+    required: true
   - type: input
     id: contact_email
     attributes:
       label: Work Email
       placeholder: "name@company.com"
-      required: true
+    required: true
   - type: textarea
     id: interest
     attributes:
       label: How would you like to support?
       placeholder: "Financial sponsorship, contributing engineering resources, providing hardware/compute, etc."
-      required: true
+    required: true
   - type: textarea
     id: goals
     attributes:

@@ -7,7 +7,7 @@ DAG Studio is a visual programming framework centered around **Data Ports**. The
 *   **`<DAGFlow>`**: The root visual context. Manages the global coordinate system (via D3) and provides the canvas for rendering nodes and connections.
 *   **`<ConnectionCanvas>`**: A pure view layer. Subscribes to the store's connection state and renders SVG edges between ports.
 *   **`<Node>` (Presentation Shell)**: A "dumb" structural container. Responsible for layout, visual encapsulation, and hosting one or more Port configurations. It acts as a spatial boundary; data flows between Ports, regardless of whether those Ports reside in the same Node or different ones.
-*   **`<Ports>` (Binding Engine)**: The intelligence layer. Wraps React components to declare the node's interface. It bridges the internal component state to the global graph.
+*   **`<Ports>` (Binding Engine)**: The intelligence layer. Wraps React components to declare the node's interface. It defines the **Ports** (the static sockets) and manages the lifecycle of the **Plug** (the draggable connection lead) during the connection process.
 
 ## 2. Identity & State Management
 The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure stability, persistence, and predictable data flow.

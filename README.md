@@ -19,14 +19,14 @@ The primary innovation of DAG Studio is the strict architectural separation betw
 
 ## ⚙️ Architecture Deep Dive
 
-The framework is built around five core, interconnected components:
+The framework is built around four core, interconnected components:
 
 ### 1. The Hierarchy (The Flow Structure)
 *   **`<DAGFlow>`**: The root context provider. Manages the global coordinate system (D3) and provides the canvas for rendering nodes and connections.
 *   **`<ConnectionCanvas>`**: A pure view layer that subscribes to the global store to render SVG edges between ports.
 *   **`<Node>` (Presentation Shell)**: The "dumb" container. Responsible *only* for layout and visual structure. It holds no business logic or flow state.
 *   **`<Ports>` (Binding Engine)**: The intelligence layer. This component wraps the visual shell, acting as the declaration point for inputs/outputs and bridging the component's internal state to the global graph.
-*   **`<Handle>`**: The physical, interactive connection points.
+*   **`Port` & `Plug`**: The interactive interface. A **Port** is the static connection point; a **Plug** is the active draggable entity created when a user initiates a connection from a Port.
 
 ### 2. Identity & State Management (Robustness)
 To ensure stability and persistence, DAG Studio utilizes a **Centralized State Engine** (Zustand + Immer):

@@ -21,7 +21,7 @@ The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure s
 *   **The `nodeRef` Binding**: The `nodeRef` property in Port configurations must bind to a **React Ref**. This allows the `Ports` engine to interact directly with the underlying component instance, bypassing unnecessary re-renders for high-frequency data updates.
 
 ## 3. Hybrid Execution Model
-The system supports two concurrent data-flow modes. The distinction is defined by the handler used in the Port configuration.
+The system supports three concurrent data-flow modes. The distinction is defined by the handler used in the Port configuration.
 
 ### A. Reactive Flow (`onChange`)
 *   **Trigger**: Immediate.

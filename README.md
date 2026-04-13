@@ -11,6 +11,14 @@ DAG Studio moves beyond simple node-graph visualization. It is a specialized, hi
 [![Status: POC](https://img.shields.io/badge/Status-POC-blue.svg)]()
 [![Tech Stack](https://img.shields.io/badge/React%2019+-indigo.svg)]()
 
+## 🤖 Development Methodology: Human-in-the-Loop AI
+
+This project is developed using a **Human-in-the-Loop (HITL)** approach to AI augmentation:
+
+*   **Architecture & Planning**: The high-level system design and technical specifications are co-authored by humans and AI to ensure rigorous structural integrity.
+*   **Implementation**: The codebase is primarily AI-generated, guided by the strict constraints defined in `AGENTS.md`, and refined through human review and manual edits.
+*   **Transparency**: To maintain a clear audit trail, all commits are attributed to the specific AI model used during that iteration.
+
 ## ✨ Core Concept: Decoupling Presentation from Flow
 
 The primary innovation of DAG Studio is the shift from **Edge-centric** to **Port-centric** architecture. 

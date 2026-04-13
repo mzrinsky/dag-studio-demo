@@ -13,7 +13,9 @@ DAG Studio moves beyond simple node-graph visualization. It is a specialized, hi
 
 ## ✨ Core Concept: Decoupling Presentation from Flow
 
-The primary innovation of DAG Studio is the strict architectural separation between **what the node looks like** (Presentation) and **how it processes data** (Binding/Execution). We treat the graph not just as a drawing, but as a *defined computational blueprint*.
+The primary innovation of DAG Studio is the shift from **Edge-centric** to **Port-centric** architecture. 
+
+While traditional node libraries (like ReactFlow) treat connections as simple lines between boxes, DAG Studio treats the graph as a *defined computational blueprint*. By centering the architecture on **Data Ports**, we introduce a strict "Contract" for every node. A port isn't just a socket; it's a typed interface that manages a **stability gradient**—allowing data to evolve from a volatile draft to a verified result and finally to a persisted record.
 
 ---
 
@@ -37,21 +39,21 @@ To ensure stability and persistence, DAG Studio utilizes a **Centralized State E
     *   **Committed State**: Structural changes are wrapped in a `Command` pattern for undo/redo support via a `historyManager`.
 *   **Performance Ref Binding**: The `nodeRef` property binds to a direct **React Ref**, enabling the `Ports` engine to interact with component instances without triggering unnecessary re-renders.
 
-### 3. Hybrid Execution Model (Computational Depth)
-We support three concurrent data-flow modes to balance responsiveness, persistence, and heavy processing:
+### 3. Hybrid Execution Model (The Data Lifecycle)
+Unlike traditional systems that force a single execution mode, DAG Studio supports three concurrent flows. These are **complementary**, allowing a single port to handle different stages of data maturity:
 
-*   🟢 **Reactive Flow (`onChange`)**:
+*   🟢 **Reactive Flow (`onChange`)** $\rightarrow$ **Draft Value**
     *   **Trigger**: Immediate change detection.
     *   **Use Case**: UI updates, live calculations, and real-time previews.
-    *   **Behavior**: Data propagates immediately as a stream through the graph.
-*   🟠 **Imperative Flow (`onProcess`)**:
-    *   **Trigger**: Manual user action (e.g., "Run" button) or scheduled events.
-    *   **Use Case**: Heavy computation, API calls, and long-running background jobs.
-    *   **Behavior**: Operations are registered as asynchronous "Jobs," waiting for prerequisite dependencies to resolve.
-*   🔵 **Persistent Flow (`onCommit`)**:
-    *   **Trigger**: Finalization (e.g., `onBlur`, `Enter` key, or explicit "Save").
-    *   **Use Case**: Database persistence, saving user settings, or permanent configuration updates.
-    *   **Behavior**: Transitions a "Draft" value to a "Committed" state. This is the primary trigger for permanent configuration updates.
+    *   **Behavior**: High-frequency, low-precision data streams.
+*   🟠 **Imperative Flow (`onProcess`)** $\rightarrow$ **Computed Value**
+    *   **Trigger**: Manual action (e.g., "Run") or dependency resolution.
+    *   **Use Case**: Heavy computation, API calls, and background jobs.
+    *   **Behavior**: High-precision results processed as asynchronous "Jobs."
+*   🔵 **Persistent Flow (`onCommit`)** $\rightarrow$ **Committed Value**
+    *   **Trigger**: Finalization (e.g., `onBlur`, `Enter`, or "Save").
+    *   **Use Case**: Database persistence and permanent configuration.
+    *   **Behavior**: Transitions a verified result into a permanent system state.
 
 ---
 
@@ -64,7 +66,7 @@ To maintain the integrity of the graph, all contributions must follow these laws
 3.  **Law of Identity**: Never rely on array indices for keys; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** use `onProcess` to protect the main UI thread.
 5.  **Law of Strict Typing**: Every port **must** have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows.
-6.  **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must block any connection that creates a closed loop across the graph (excluding internal node feedback).
+6.  **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must block any connection that creates a closed loop across the graph (excluding internal node feedback). This ensures that real-time data streams remain stable and cannot crash the browser.
 
 ---
 

@@ -50,7 +50,19 @@ The system supports three concurrent data-flow modes. The distinction is defined
 6.  **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must prevent circular dependencies. While a Port may connect to another Port within the same Node (internal feedback), the global state engine must block any connection that creates a closed loop across the graph.
 
 
-## 5. Implementation Example (Pseudo-code)
+## 5. Design Philosophy: The Port-First Approach
+
+DAG Studio departs from traditional "Node-Edge" frameworks by treating the **Port** as the primary unit of logic and the **Node** as a secondary organizational unit.
+
+*   **The Node as a Spatial Group**: In this architecture, a `<Node>` is effectively a "dumb" grouping mechanism. It provides visual encapsulation, coordinate boundaries, and a z-index for the UI, but it does not participate in data processing. 
+*   **The Ports Component as a Factory**: The `<Ports>` component is the actual "Binding Engine." It acts as a factory that instantiates multiple individual **Port connectors** based on the provided metadata. This allows a single logical entity (a Node) to expose a complex interface of many disparate inputs and outputs.
+*   **Non-Exclusive Execution Modes**: The three execution modes (Reactive, Imperative, Persistent) are **complementary, not mutually exclusive**. A single port can implement multiple handlers to create a data stability gradient:
+    *   `onChange` for immediate, low-precision UI feedback (**Draft Value**).
+    *   `onProcess` for deferred, high-precision computation (**Computed Value**).
+    *   `onCommit` for final, permanent state synchronization (**Committed Value**).
+    This allows a single data point to evolve from a "volatile draft" to a "verified result" and finally to a "persisted record."
+
+## 6. Implementation Example (Pseudo-code)
 
 ```jsx
 // UI components now simply subscribe to the store and trigger actions
@@ -87,7 +99,7 @@ The system supports three concurrent data-flow modes. The distinction is defined
 </DAGFlow>
 ```
 
-## 6. Tech Stack
+## 7. Tech Stack
 *   **Framework**: Next.js 16, React 19+
 *   **Styling**: Tailwind CSS, shadcn/ui
 *   **State**: Zustand (with Immer and Persist middleware)

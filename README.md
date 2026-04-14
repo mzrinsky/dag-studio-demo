@@ -136,7 +136,7 @@ If your organization is building AI orchestration tools or complex data pipeline
 
 DAG Studio stands on the shoulders of giants. The architectural philosophy of this project is heavily inspired by the elegance of immediate-mode GUIs and the robustness of professional node-based editors:
 
-*   **Reaktor**: The pioneering influence of "patch cable" style software connectivity and modular signal routing.
+*   **Reason**: The pioneering influence of "patch cable" style software connectivity and modular signal routing.
 *   **Dear ImGui**: For the philosophy of high-performance, state-driven UI.
 *   **Tweakpane & dat.GUI**: For the mastery of compact, intuitive control interfaces.
 *   **LightGraph.js**: For the foundational approach to visual graph connectivity.

@@ -8,6 +8,12 @@ By strictly separating the data engine from the visual framework, DAG Studio aim
 
 To demonstrate this capability, the project will also serve as a comprehensive reference implementation, providing a concrete application that showcases the framework's power in a real-world scenario.
 
+## 🎯 A Note on Intent
+
+This project started from a simple desire to build a fun, "patch cable" style interface. Given that software like *Reason* has existed for nearly three decades, I assumed this was a solved problem. However, after searching for libraries that fit the bill, I found that most available solutions focus heavily on the visual "nodes and edges" rather than the underlying data contract.
+
+I don't claim to have invented "Plugs & Ports"—it's likely a pattern used privately in many systems—but I couldn't find a comprehensive, public specification for it. I'm building DAG Studio because it's the system I want to use, and in doing so, I hope to provide a formalized spec that moves the conversation toward a more logical, port-centric approach. I have a deep passion for UI design and I feel this project encapsulates a lot of my ideas from over many years into one place. I hope you find it useful or at least interesting. Enjoy! 🎉
+
 > [!IMPORTANT]
 > **Work in Progress:** This project is currently in the Proof-of-Concept (POC) phase. The architectural plan and technical specifications are more mature than the current implementation. Expect rapid iterations as the vision is translated into code.
 
@@ -21,7 +27,7 @@ This project is developed using a **Human-in-the-Loop (HITL)** approach to AI au
 
 *   **Architecture & Planning**: The high-level system design and technical specifications are co-authored by humans and AI to ensure rigorous structural integrity.
 *   **Implementation**: The codebase is primarily AI-generated, guided by the strict constraints defined in `AGENTS.md`, and refined through human review and manual edits.
-*   **Transparency**: To maintain a clear audit trail, all commits are attributed to the specific AI model used during that iteration.
+*   **Attribution**: Every commit is strictly tagged with the contributing AI model and parameter count (e.g., Co-authored-by: Gemma 4 31B) to maintain a transparent audit trail of human vs. AI contributions.
 
 ## ✨ Core Concept: Decoupling Presentation from Flow
 

@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Handle from './Handle';
-import { Card } from '@/components/ui/card'; // Assuming ui components are available
 
 // Define structure for clarity (though we use placeholders for complex types)
 interface PortDefinition {

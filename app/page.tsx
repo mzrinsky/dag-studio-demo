@@ -1,7 +1,6 @@
 import DAGFlow from '@/components/DAGFlow';
 import Node from '@/components/Node';
 import Ports from '@/components/Ports'; // Import Ports component
-import { Card } from '@/components/ui/card';
 
 // Mocking the functionality expected by the components for demonstration purposes
 // In a real app, state and context would manage these values.

@@ -1,6 +1,3 @@
-import React from 'react';
-import Node from './Node';
-import { Card } from '@/components/ui/card';
 import { TooltipProvider } from '@/components/ui/tooltip'; // Assuming shadcn/ui tooltip components are available
 
 /**

@@ -1,7 +1,5 @@
 'use client';
 import React, { ReactNode, ReactElement, useRef, useEffect, useState } from 'react';
-import Ports from './Ports';
-import { Card } from '@/components/ui/card'; // Assuming ui components are available
 import * as d3 from 'd3'; // Import d3
 
 interface NodeProps {

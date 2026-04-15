@@ -4,6 +4,10 @@
 
 DAG Studio moves beyond simple node-graph visualization. It is a specialized, high-performance framework designed to model, visualize, and execute complex, multi-stage data transformations using a highly decoupled architecture.
 
+By strictly separating the data engine from the visual framework, DAG Studio aims to empower developers to rapidly build their own "patch cable" style interfaces for any domain—transforming complex logic into an intuitive, visual routing experience without rebuilding the underlying graph machinery.
+
+To demonstrate this capability, the project will also serve as a comprehensive reference implementation, providing a concrete application that showcases the framework's power in a real-world scenario.
+
 > [!IMPORTANT]
 > **Work in Progress:** This project is currently in the Proof-of-Concept (POC) phase. The architectural plan and technical specifications are more mature than the current implementation. Expect rapid iterations as the vision is translated into code.
 

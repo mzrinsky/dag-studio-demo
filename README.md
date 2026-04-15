@@ -50,20 +50,33 @@ To ensure stability and persistence, DAG Studio utilizes a **Centralized State E
 ### 3. Hybrid Execution Model (The Data Lifecycle)
 Unlike traditional systems that force a single execution mode, DAG Studio supports three concurrent flows. These are **complementary**, allowing a single port to handle different stages of data maturity:
 
-*   🟢 **Reactive Flow (`onChange`)** $\rightarrow$ **Draft Value**
+*   🟢 **Reactive Flow (`onChange`)** → **Draft Value**
     *   **Trigger**: Immediate change detection.
     *   **Use Case**: UI updates, live calculations, and real-time previews.
     *   **Behavior**: High-frequency, low-precision data streams.
-*   🟠 **Imperative Flow (`onProcess`)** $\rightarrow$ **Computed Value**
+*   🟠 **Imperative Flow (`onProcess`)** → **Computed Value**
     *   **Trigger**: Manual action (e.g., "Run") or dependency resolution.
     *   **Use Case**: Heavy computation, API calls, and background jobs.
     *   **Behavior**: High-precision results processed as asynchronous "Jobs."
-*   🔵 **Persistent Flow (`onCommit`)** $\rightarrow$ **Committed Value**
+*   🔵 **Persistent Flow (`onCommit`)** → **Committed Value**
     *   **Trigger**: Finalization (e.g., `onBlur`, `Enter`, or "Save").
     *   **Use Case**: Database persistence and permanent configuration.
     *   **Behavior**: Transitions a verified result into a permanent system state.
 
 ---
+
+## 📚 Technical Specifications
+
+For a detailed implementation guide on the system's advanced layers, refer to the following specification documents in `/docs/drafts`:
+
+*   **[Distribution Boundary](docs/drafts/DISTRIBUTION_BOUNDARY.md)**: Defines the three-tier stack separation (Data Engine → Visual Framework → Product App).
+*   **[UI State Management](docs/drafts/UI_STATE_MANAGEMENT.md)**: Detailed logic for the "Data Quad" (Default, Committed, Computed, Draft) and state recovery.
+*   **[Collaboration State](docs/drafts/COLLABORATION_STATE.md)**: The "Soft-Lock" mechanism, presence schema, and conflict resolution logic.
+*   **[Collaboration UI](docs/drafts/COLLABORATION_UI.md)**: Visual requirements for remote cursors, locking masks, and conflict popovers.
+*   **[Persistence Strategy](docs/drafts/PERSISTENCE_STRATEGY.md)**: The Append-Only Event Journal, snapshotting, and global state recovery.
+
+---
+
 
 ## 📜 Developer Guardrails (The Laws)
 

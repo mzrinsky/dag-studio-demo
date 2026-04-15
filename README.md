@@ -71,9 +71,10 @@ For a detailed implementation guide on the system's advanced layers, refer to th
 
 *   **[Distribution Boundary](docs/drafts/DISTRIBUTION_BOUNDARY.md)**: Defines the three-tier stack separation (Data Engine → Visual Framework → Product App).
 *   **[UI State Management](docs/drafts/UI_STATE_MANAGEMENT.md)**: Detailed logic for the "Data Quad" (Default, Committed, Computed, Draft) and state recovery.
-*   **[Collaboration State](docs/drafts/COLLABORATION_STATE.md)**: The "Soft-Lock" mechanism, presence schema, and conflict resolution logic.
+*   **[Collaboration State](docs/drafts/COLLABORATION_STATE.md)**: The "Soft-lock" mechanism, presence schema, and conflict resolution logic.
 *   **[Collaboration UI](docs/drafts/COLLABORATION_UI.md)**: Visual requirements for remote cursors, locking masks, and conflict popovers.
 *   **[Persistence Strategy](docs/drafts/PERSISTENCE_STRATEGY.md)**: The Append-Only Event Journal, snapshotting, and global state recovery.
+*   **[Connection Routing](docs/drafts/CONNECTION_ROUTING.md)**: Logic for path generation (Linear, Organic, Orthogonal), the Layered Overlay Model, and dynamic performance degradation.
 
 ---
 

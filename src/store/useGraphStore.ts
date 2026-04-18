@@ -18,7 +18,6 @@ const isValidConnection = (sourceType: PortType, targetType: PortType): boolean 
   return compatibleTargets ? compatibleTargets.has(targetType) : false;
 };
 
-
 export interface PortState {
   id: string;
   nodeId: string;
@@ -51,6 +50,39 @@ export interface Command {
   undo: (draft: GraphStateInternal) => void;
 }
 
+export type HandlerType = 'onChange' | 'onProcess' | 'onCommit';
+
+export interface PortHandlers {
+  /** 
+   * Reactive Flow: Triggered immediately on draft change.
+   * (Draft Value -> Reactive Update)
+   */
+  onChange?: (value: any, context: PortContext) => void;
+
+  /** 
+   * Imperative Flow: Triggered manually or by a scheduler.
+   * (Draft Value -> Computed Value)
+   */
+  onProcess?: (context: PortContext) => Promise<any>;
+
+  /** 
+   * Persistent Flow: Triggered on finalization (blur/enter).
+   * (Computed/Draft Value -> Committed Value)
+   */
+  onCommit?: (value: any, context: PortContext) => void;
+}
+
+/**
+ * Providing context to the handler allows the component to know 
+ * where the data came from without needing to reach back into the store.
+ */
+export interface PortContext {
+  portId: string;
+  nodeId: string;
+  previousValue: any;
+  currentValue: any;
+}
+
 type GraphStateInternal = Omit<GraphState, 'undo' | 'redo' | 'executeCommand'>;
 
 export interface GraphSnapshot {
@@ -64,6 +96,7 @@ interface GraphState {
   ports: Record<string, PortState>;
   connections: Connection[];
   nodeRefs: Record<string, any>;
+  handlerRegistry: Record<string, PortHandlers>; // Added: Transient storage for callbacks
   history: Command[]; 
   historyIndex: number;
   
@@ -72,9 +105,9 @@ interface GraphState {
   updatePortValue: (id: string, value: any, slot?: 'draft' | 'committed' | 'computed') => void;
   registerNodeRef: (id: string, ref: any) => void;
   unregisterNodeRef: (id: string) => void;
+  registerPortHandlers: (portId: string, handlers: PortHandlers) => void; // Added
+  unregisterPortHandlers: (portId: string) => void; // Added
   executeCommand: (command: Command) => void;
-  bringToFront: (id: string) => void;
-  addConnection: (sourcePortId: string, targetPortId: string) => void;
   
   // Committed actions (now just helpers that call executeCommand)
   addNode: (node: NodeState, ports: PortState[]) => void;
@@ -124,11 +157,12 @@ const wouldCreateCycle = (
 
 export const useGraphStore = create<GraphState>()(
   persist(
-    immer((set, get) => ({ // 2. Wrap with immer
+    immer((set, get) => ({ 
       nodes: {},
       ports: {},
       connections: [],
       nodeRefs: {},
+      handlerRegistry: {}, // Initialize transient registry
       history: [],
       historyIndex: -1,
 
@@ -141,11 +175,41 @@ export const useGraphStore = create<GraphState>()(
         const port = state.ports[id];
         if (!port) return;
 
+        const prevValue = port[slot === 'draft' ? 'draftValue' : slot === 'committed' ? 'committedValue' : 'computedValue'];
+
         switch (slot) {
           case 'draft': port.draftValue = value; break;
           case 'committed': port.committedValue = value; break;
           case 'computed': port.computedValue = value; break;
         }
+
+        // Propagation Logic
+        const downstreamConnections = state.connections.filter(c => c.sourcePortId === id);
+  
+        downstreamConnections.forEach(conn => {
+          const targetPortId = conn.targetPortId;
+          const targetPort = state.ports[targetPortId];
+          const handlers = state.handlerRegistry[targetPortId];
+
+          if (!targetPort || !handlers) return;
+
+          const context: PortContext = {
+            portId: targetPortId,
+            nodeId: targetPort.nodeId,
+            previousValue: prevValue,
+            currentValue: value,
+          };
+
+          // Trigger the appropriate handler based on the slot
+          if (slot === 'draft' && handlers.onChange) {
+            handlers.onChange(value, context);
+          } else if (slot === 'computed' && handlers.onChange) {
+            // Computed values also typically trigger onChange for downstream UI
+            handlers.onChange(value, context);
+          } else if (slot === 'committed' && handlers.onCommit) {
+            handlers.onCommit(value, context);
+          }
+        });
       }),
 
       registerNodeRef: (id, ref) => set((state) => {
@@ -154,6 +218,14 @@ export const useGraphStore = create<GraphState>()(
 
       unregisterNodeRef: (id) => set((state) => {
         delete state.nodeRefs[id];
+      }),
+
+      registerPortHandlers: (portId, handlers) => set((state) => {
+        state.handlerRegistry[portId] = handlers;
+      }),
+
+      unregisterPortHandlers: (portId) => set((state) => {
+        delete state.handlerRegistry[portId];
       }),
 
       // --- NODE MANAGER LOGIC ---
@@ -301,6 +373,7 @@ export const useGraphStore = create<GraphState>()(
         nodes: state.nodes, 
         ports: state.ports, 
         connections: state.connections
+        // handlerRegistry and nodeRefs are intentionally excluded to keep them transient
       }),
     }
   )

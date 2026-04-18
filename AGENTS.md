@@ -23,31 +23,41 @@ The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure s
 ## 3. Hybrid Execution Model
 The system supports three concurrent data-flow modes. The distinction is defined by the handler used in the Port configuration.
 
-### A. Reactive Flow (`onChange`)
-*   **Trigger**: Immediate.
-*   **Behavior**: Data propagates through the graph as soon as a change is detected.
-*   **Use Case**: UI updates, real-time calculations, sliders, and live previews.
-*   **Implementation**: Mapped to the `onChange` handler in the Port definition.
+### The Data Stability Gradient (The Data Quad)
+Data in DAG Studio is not a single value, but a lifecycle. A Port manages four distinct state slots to ensure stability:
+1. **Default Value**: The hard-coded baseline.
+2. **Draft Value (`onChange`)**: The volatile, immediate state. High-frequency, low-precision.
+3. **Computed Value (`onProcess`)**: The verified result of a job. High-precision, asynchronous.
+4. **Committed Value (`onCommit`)**: The persisted system state. The "Source of Truth" for databases.
 
-### B. Imperative Flow (`onProcess`)
-*   **Trigger**: Manual (e.g., a "Run" button) or Scheduled.
-*   **Behavior**: The operation is registered as a "Job." It waits for a global execution signal or for all prerequisite dependencies to be resolved.
-*   **Use Case**: API calls, heavy computations, background worker processes, and long-running jobs.
-*   **Implementation**: Mapped to the `onProcess` handler in the Port definition.
+**Lifecycle Flow:** `Draft` $\rightarrow$ `Computed` $\rightarrow$ `Committed`.
+
+### A. Reactive Flow (`onChange`)
+*   **Trigger**: Immediate (on value change).
+*   **Behavior**: Data propagates through the graph as soon as a change is detected in the store.
+*   **Use Case**: UI updates, real-time calculations, sliders, and live previews.
+*   **Implementation**: Executed by the store after the **Draft Value** is updated.
+
+### B. Processing Logic (`onProcess`)
+*   **Trigger**: External/Global (e.g., a global "Run" signal, a scheduler, or a manual trigger).
+*   **Behavior**: This is a **definition of work**. When the graph engine executes, it calls this handler to transform inputs into a high-precision result.
+*   **Use Case**: API calls, heavy computations, background worker processes.
+*   **Implementation**: The handler returns a value which the store then writes to the **Computed Value** slot.
 
 ### C. Persistent Flow (`onCommit`)
 *   **Trigger**: Finalization (e.g., `onBlur`, `Enter` key, or explicit "Save").
-*   **Behavior**: Transitions a "Draft" value to a "Committed" value. This is the trigger for database persistence or permanent configuration updates.
+*   **Behavior**: The system transitions a value from Draft/Computed to Committed in the data model.
 *   **Use Case**: Saving user settings, updating node configurations, persisting graph state.
-*   **Implementation**: Mapped to the `onCommit` handler in the Port definition.
+*   **Implementation**: Executed by the store after the **Committed Value** is updated (used for side-effects like DB writes).
 
 ## 4. Developer Guardrails (The Laws)
-1.  **Law of Decoupling**: No business logic in `<Node>`. Logic belongs in the store actions, the `Ports` configuration, or the wrapped component.
-2.  **Law of Binding**: All data entering or leaving a component must be declared in the `<Ports>` metadata.
-3.  **Law of Identity**: Never use array indices as keys for nodes or ports; always use UUIDs.
-4.  **Law of Execution**: Long-running tasks **must** be implemented via `onProcess` to prevent blocking the main UI thread.
-5.  **Law of Strict Typing**: Every port must have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability.
-6.  **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must prevent circular dependencies. While a Port may connect to another Port within the same Node (internal feedback), the global state engine must block any connection that creates a closed loop across the graph.
+1. **Law of Decoupling**: No business logic in `<Node>`. Logic belongs in the store actions, the `Ports` configuration, or the wrapped component.
+2. **Law of Binding**: All data entering or leaving a component must be declared in the `<Ports>` metadata.
+3. **Law of Identity**: Never use array indices as keys for nodes or ports; always use UUIDs.
+4. **Law of Execution**: Long-running tasks **must** be implemented via `onProcess` to prevent blocking the main UI thread.
+5. **Law of Strict Typing**: Every port must have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability.
+6. **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must prevent circular dependencies. While a Port may connect to another Port within the same Node (internal feedback), the global state engine must block any connection that creates a closed loop across the graph.
+7. **Law of Command**: Any structural modification to the graph topology (adding/removing nodes, ports, or connections) **must** be implemented via the `Command` pattern to ensure atomic undo/redo capability. Direct mutation of the topology outside of `executeCommand` is strictly forbidden.
 7.  **Law of Attribution**: To maintain a transparent audit trail of human vs. AI contributions, every commit must include a footer identifying the AI's role using the following strict taxonomy:
     *   **Case A: AI-Generated Code/Logic**: If the AI wrote the actual code, implemented a feature, or fixed a bug.
         *   *Format*: `Co-authored-by: [Model Name] [Parameter Count]` (e.g., `Co-authored-by: Gemma 4 31B`)
@@ -59,8 +69,11 @@ The system supports three concurrent data-flow modes. The distinction is defined
 
 DAG Studio departs from traditional "Node-Edge" frameworks by treating the **Port** as the primary unit of logic and the **Node** as a secondary organizational unit.
 
-*   **The Node as a Spatial Group**: In this architecture, a `<Node>` is effectively a "dumb" grouping mechanism. It provides visual encapsulation, coordinate boundaries, and a z-index for the UI, but it does not participate in data processing. 
-*   **The Ports Component as a Factory**: The `<Ports>` component is the actual "Binding Engine." It acts as a factory that instantiates multiple individual **Port connectors** based on the provided metadata. This allows a single logical entity (a Node) to expose a complex interface of many disparate inputs and outputs.
+* **The Node as a Spatial Group**: In this architecture, a `<Node>` is effectively a "dumb" grouping mechanism...
+* **The Ports Component as a Factory**: The `<Ports>` component is the actual "Binding Engine." It acts as a factory...
+* **Authority of Validation**: 
+    * **The Store** is the sole authority on **Connection Legality** (Type compatibility and Acyclicity).
+    * **The Ports Component** is the sole authority on **Component Interface** (Which ports are exposed and how they bind to the inner component).
 *   **Non-Exclusive Execution Modes**: The three execution modes (Reactive, Imperative, Persistent) are **complementary, not mutually exclusive**. A single port can implement multiple handlers to create a data stability gradient:
     *   `onChange` for immediate, low-precision UI feedback (**Draft Value**).
     *   `onProcess` for deferred, high-precision computation (**Computed Value**).

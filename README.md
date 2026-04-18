@@ -33,7 +33,8 @@ This project is developed using a **Human-in-the-Loop (HITL)** approach to AI au
 
 The primary innovation of DAG Studio is the shift from **Edge-centric** to **Port-centric** architecture. 
 
-While traditional node libraries (like ReactFlow) treat connections as simple lines between boxes, DAG Studio treats the graph as a *defined computational blueprint*. By centering the architecture on **Data Ports**, we introduce a strict "Contract" for every node. A port isn't just a socket; it's a typed interface that manages a **stability gradient**—allowing data to evolve from a volatile draft to a verified result and finally to a persisted record.
+While traditional node libraries (like ReactFlow) treat connections as simple lines between boxes, DAG Studio treats the graph as a *defined computational blueprint*. By centering the architecture on **Data Ports**, we introduce a strict "Contract" for every node. A port isn't just a socket; it's a typed interface that manages a **Stability Gradient**—allowing data to evolve through the **Data Quad** from a volatile draft to a verified result and finally to a persisted record.
+
 
 ---
 
@@ -45,33 +46,35 @@ The framework is built around four core, interconnected components:
 *   **`<DAGFlow>`**: The root context provider. Manages the global coordinate system (D3) and provides the canvas for rendering nodes and connections.
 *   **`<ConnectionCanvas>`**: A pure view layer that subscribes to the global store to render SVG edges between ports.
 *   **`<Node>` (Presentation Shell)**: The "dumb" container. Responsible *only* for layout and visual structure. It holds no business logic or flow state.
-*   **`<Ports>` (Binding Engine)**: The intelligence layer. This component wraps the visual shell, acting as the declaration point for inputs/outputs and bridging the component's internal state to the global graph.
+*   **`<Ports>` (Binding Engine)**: The intelligence layer. This component wraps the visual shell, acting as the declaration point for inputs/outputs. It defines the "API" (callbacks) that the global store will use to interact with the wrapped component.
 *   **`Port` & `Plug`**: The interactive interface. A **Port** is the static connection point; a **Plug** is the active draggable entity created when a user initiates a connection from a Port.
 
 ### 2. Identity & State Management (Robustness)
 To ensure stability and persistence, DAG Studio utilizes a **Centralized State Engine** (Zustand + Immer):
 *   **UUID Mandate**: Every Node and Port *must* have a stable, unique ID. Array indices are strictly forbidden as keys.
-*   **Global Registry**: All positions, z-indices, and connection mappings are stored in a global store (`useGraphStore`), allowing logic to exist independently of the React component tree.
+*   **Global Registry**: All positions, z-indices, and connection mappings are stored in a global store (`useGraphStore`). **The Store is the sole Source of Truth and the Orchestrator of all data flow**; it decides when to trigger port callbacks based on graph dependencies.
 *   **State Partitioning**: 
     *   **Transient State**: High-frequency updates (e.g., dragging) update the store directly for immediate feedback.
     *   **Committed State**: Structural changes are wrapped in a `Command` pattern for undo/redo support via a `historyManager`.
 *   **Performance Ref Binding**: The `nodeRef` property binds to a direct **React Ref**, enabling the `Ports` engine to interact with component instances without triggering unnecessary re-renders.
 
-### 3. Hybrid Execution Model (The Data Lifecycle)
-Unlike traditional systems that force a single execution mode, DAG Studio supports three concurrent flows. These are **complementary**, allowing a single port to handle different stages of data maturity:
+### 3. Hybrid Execution Model (The Data Stability Gradient)
+Unlike traditional systems that force a single execution mode, DAG Studio supports three **complementary execution modes** that operate concurrently. These modes are the mechanisms the Store uses to manage the **Data Stability Gradient**—the process of moving a value through four distinct state slots (The Data Quad) to ensure system stability:
 
-*   🟢 **Reactive Flow (`onChange`)** → **Draft Value**
-    *   **Trigger**: Immediate change detection.
+*   🟢 **Reactive Flow (`onChange`)** $\rightarrow$ **Draft Value**
+    *   **Nature**: Volatile, immediate, low-precision.
+    *   **Trigger**: Triggered by the Store upon immediate change detection.
     *   **Use Case**: UI updates, live calculations, and real-time previews.
-    *   **Behavior**: High-frequency, low-precision data streams.
-*   🟠 **Imperative Flow (`onProcess`)** → **Computed Value**
-    *   **Trigger**: Manual action (e.g., "Run") or dependency resolution.
+*   🟠 **Imperative Flow (`onProcess`)** $\rightarrow$ **Computed Value**
+    *   **Nature**: Verified, high-precision, asynchronous.
+    *   **Trigger**: Triggered by the Store via a global "Run" signal or dependency resolution.
     *   **Use Case**: Heavy computation, API calls, and background jobs.
-    *   **Behavior**: High-precision results processed as asynchronous "Jobs."
-*   🔵 **Persistent Flow (`onCommit`)** → **Committed Value**
-    *   **Trigger**: Finalization (e.g., `onBlur`, `Enter`, or "Save").
+*   🔵 **Persistent Flow (`onCommit`)** $\rightarrow$ **Committed Value**
+    *   **Nature**: Permanent system state (The "Source of Truth").
+    *   **Trigger**: Triggered by the Store upon finalization (e.g., `onBlur`, `Enter`, or "Save").
     *   **Use Case**: Database persistence and permanent configuration.
-    *   **Behavior**: Transitions a verified result into a permanent system state.
+
+**Lifecycle Flow:** `Default Value` $\rightarrow$ `Draft` $\rightarrow$ `Computed` $\rightarrow$ `Committed`.
 
 ---
 

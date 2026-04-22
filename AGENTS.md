@@ -12,6 +12,7 @@ DAG Studio is a visual programming framework centered around **Data Ports**. The
 ## 2. Identity & State Management
 The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure stability, persistence, and predictable data flow.
 
+*   **Slicing Pattern**: To maintain scalability and separate concerns, the global store is partitioned into domain-specific slices (e.g., `topologySlice` for structure, `executionSlice` for data flow, `historySlice` for undo/redo).
 *   **UUIDs**: Every Node and Port must have a unique ID. Array indices are strictly forbidden as keys.
 *   **Global Registry**: All node positions, z-indices, port values, and connection mappings are stored in the `useGraphStore`. This allows for logic (like connection validation) to exist independently of the React component tree.
 *   **Z-Index Management**: Node layering is treated as state within the store, allowing for "Bring to Front" functionality and persistence across sessions.
@@ -58,7 +59,8 @@ Data in DAG Studio is not a single value, but a lifecycle. A Port manages four d
 5. **Law of Strict Typing**: Every port must have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability.
 6. **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must prevent circular dependencies. While a Port may connect to another Port within the same Node (internal feedback), the global state engine must block any connection that creates a closed loop across the graph.
 7. **Law of Command**: Any structural modification to the graph topology (adding/removing nodes, ports, or connections) **must** be implemented via the `Command` pattern to ensure atomic undo/redo capability. Direct mutation of the topology outside of `executeCommand` is strictly forbidden.
-7.  **Law of Attribution**: To maintain a transparent audit trail of human vs. AI contributions, every commit must include a footer identifying the AI's role using the following strict taxonomy:
+8. **Law of Verification**: No logic shall be committed to the global store without corresponding unit tests. All tests must utilize `resetStore()` to ensure isolation and specifically verify the three pillars: Topology (legality/cycles), Execution (Data Quad lifecycle), and History (undo/redo atomicity).
+9. **Law of Attribution**: To maintain a transparent audit trail of human vs. AI contributions, every commit must include a footer identifying the AI's role using the following strict taxonomy:
     *   **Case A: AI-Generated Code/Logic**: If the AI wrote the actual code, implemented a feature, or fixed a bug.
         *   *Format*: `Co-authored-by: [Model Name] [Parameter Count]` (e.g., `Co-authored-by: Gemma 4 31B`)
     *   **Case B: Fully AI-Automated**: If the AI performed the task end-to-end via Agent Mode.
@@ -122,3 +124,14 @@ DAG Studio departs from traditional "Node-Edge" frameworks by treating the **Por
 *   **Styling**: Tailwind CSS, shadcn/ui
 *   **State**: Zustand (with Immer and Persist middleware)
 *   **Interaction**: d3-drag, d3-zoom
+
+## 8. Testing Standards
+To maintain the integrity of the graph engine, all store logic must be verified via unit tests.
+
+*   **Isolated State**: Tests must use a `resetStore()` utility in `beforeEach` to prevent state leakage between test cases.
+*   **Store Mocking**: Since the store is a singleton, use a dedicated `setupStoreMock()` to ensure a clean environment for Vitest.
+*   **Test Domains**:
+    *   **Topology Tests**: Focus on connection legality (Type matching) and graph theory (Acyclicity/Loop prevention).
+    *   **Execution Tests**: Focus on the "Data Quad" lifecycle. Verify that `onChange` triggers propagation and that draft/computed/committed slots remain distinct.
+    *   **History Tests**: Focus on the `Command` pattern. Every structural change must be testable via `undo()` and `redo()`, including the clearing of the forward stack upon new actions.
+*   **Mocking Side-Effects**: Use `vi.fn()` to spy on port handlers (like `onChange`) to verify that data flows through the graph as expected without needing to render the UI.

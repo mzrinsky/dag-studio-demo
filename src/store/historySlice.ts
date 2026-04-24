@@ -3,7 +3,22 @@ import { GraphState, Command } from "./types";
 
 const MAX_HISTORY_SIZE = 50;
 
-export const createHistorySlice: StateCreator<GraphState> = (set, get) => ({
+// 1. Define the specific interface for the history slice
+export interface HistorySlice {
+  history: Command[];
+  historyIndex: number;
+  executeCommand: (command: Command) => void;
+  undo: () => void;
+  redo: () => void;
+}
+
+// 2. Use the 4-generic StateCreator pattern with Immer middleware type
+export const createHistorySlice: StateCreator<
+  GraphState,
+  [["zustand/immer", never]],
+  [],
+  HistorySlice
+> = (set, get) => ({
   history: [],
   historyIndex: -1,
 

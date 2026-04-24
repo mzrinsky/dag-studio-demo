@@ -1,74 +1,86 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Handle from './Handle';
+import { useGraphStore } from '@/store/useGraphStore'; // Adjust path as needed
 
-// Define structure for clarity (though we use placeholders for complex types)
 interface PortDefinition {
+  id?: string; // Optional: if not provided, we generate one
   label?: string;
-  // REMOVED onProcess: Function references cannot be serialized across SSR boundaries.
+  onChange?: (val: any, ctx: any) => void;
+  onProcess?: () => Promise<any>;
+  onCommit?: (val: any, ctx: any) => void;
 }
 
 interface PortsProps {
-  inputs: PortDefinition[];
-  outputs: PortDefinition[];
+  inputs?: PortDefinition[];
+  outputs?: PortDefinition[];
   children: React.ReactNode;
 }
 
-/**
- * Ports Component: Acts as the Binding Engine wrapper.
- * It receives inputs/outputs metadata and structures the UI around the children.
- */
 const Ports: React.FC<PortsProps> = ({ inputs, outputs, children }) => {
-  // State to track if the component has mounted on the client side
   const [hasMounted, setHasMounted] = useState(false);
+  
+  // Store actions for registration
+  const registerPortHandlers = useGraphStore((state) => state.registerPortHandlers);
+  const unregisterPortHandlers = useGraphStore((state) => state.unregisterPortHandlers);
 
   useEffect(() => {
-    // Set mounted state only on the client side
     setHasMounted(true);
   }, []);
 
-  // If not mounted, render null or a minimal structure to prevent hydration errors
-  if (!hasMounted) {
-    return <>{children}</>;
-  }
+  useEffect(() => {
+    if (!hasMounted) return;
+
+    // Registration Logic: Ensure all defined ports exist in the Global Registry
+    const allPorts = [...(inputs || []), ...(outputs || [])];
+    
+    allPorts.forEach((port) => {
+      const portId = port.id || `port-${crypto.randomUUID()}`;
+      const handlers = {
+        onChange: port.onChange,
+        onProcess: port.onProcess,
+        onCommit: port.onCommit,
+      };
+      registerPortHandlers(portId, handlers);
+    });
+
+    return () => {
+      allPorts.forEach((port) => {
+        if (port.id) unregisterPortHandlers(port.id);
+      });
+    };
+  }, [inputs, outputs, hasMounted, registerPortHandlers, unregisterPortHandlers]);
+
+  if (!hasMounted) return <>{children}</>;
 
   return (
-    <>
-      {/* Handles/Controls wrapper for Inputs (Left Side) */}
-      
-      <div className="flex justify-between items-start">
-        {inputs?.length > 0 && (
+    <div className="flex justify-between items-start">
+      {!!inputs && inputs.length > 0 && (
         <div className="flex flex-col space-y-2 pl-2 pt-2 border-r border-gray-100 mr-2">
-            {inputs.map((input, index) => (
+          {inputs.map((input) => (
             <Handle 
-              key={`in-${index}`} 
+              key={input.id || 'gen-in'} // Fallback for render, though registration handles the real ID
               isInput={true} 
-              label={input.label || `Input ${index + 1}`} 
-            />
-          ))}
-          </div >
-        )}
-
-        {/* The main content wrapper (Child component that renders) */}
-        <div className="flex-grow py-1">
-          {/* This is where the actual rendered UI component using props goes */}
-          {children}
-          </div>
-        
-        {outputs?.length > 0 && (
-        <div className="flex flex-col space-y-2 pr-2 pt-2 border-l border-gray-100 ml-2">
-            {outputs.map((output, index) => (
-            <Handle 
-              key={`out-${index}`} 
-              isInput={false} 
-              label={output.label || `Output ${index + 1}`} 
+              label={input.label || `Input`} 
             />
           ))}
         </div>
-        )}
-      </div>
+      )}
+
+      <div className="flex-grow py-1">{children}</div>
       
-    </>
+      {!!outputs && outputs.length > 0 && (
+        <div className="flex flex-col space-y-2 pr-2 pt-2 border-l border-gray-100 ml-2">
+          {outputs.map((output) => (
+            <Handle 
+              key={output.id || 'gen-out'} 
+              isInput={false} 
+              label={output.label || `Output`} 
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

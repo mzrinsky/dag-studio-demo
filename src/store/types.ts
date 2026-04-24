@@ -19,7 +19,8 @@ export interface NodeState {
   type: string;
 }
 
-export interface Connection {
+// Renamed from Connection to ConnectionState for consistency
+export interface ConnectionState {
   id: string;
   sourcePortId: string;
   targetPortId: string;
@@ -47,7 +48,7 @@ export interface GraphState {
   // Topology
   nodes: Record<string, NodeState>;
   ports: Record<string, PortState>;
-  connections: Connection[];
+  connections: ConnectionState[]; // Updated to ConnectionState
 
   // Execution
   nodeRefs: Record<string, any>;

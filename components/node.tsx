@@ -34,7 +34,7 @@ const Node: React.FC<NodeProps> = ({ title, showTitle, children, wrapperElement,
     const element = nodeRef.current;
     if (!element) return;
 
-    const drag = d3.drag()
+    const drag = d3.drag<HTMLDivElement, unknown>()
       .on("start", (event) => {
         // Get current element position
         const rect = element.getBoundingClientRect();
@@ -66,7 +66,7 @@ const Node: React.FC<NodeProps> = ({ title, showTitle, children, wrapperElement,
         element.style.cursor = 'grab';
       });
 
-    d3.select(element).call(drag);
+    d3.select<HTMLDivElement, unknown>(element).call(drag);
 
     return () => {
       d3.select(element).on(".drag", null);

@@ -1,7 +1,24 @@
 import { StateCreator } from "zustand";
-import { GraphState, PortContext } from "./types";
+import { GraphState, PortContext, PortHandlers } from "./types";
 
-export const createExecutionSlice: StateCreator<GraphState> = (set, get) => ({
+export interface ExecutionSlice {
+  nodeRefs: Record<string, any>;
+  handlerRegistry: Record<string, PortHandlers>;
+  registerNodeRef: (id: string, ref: any) => void;
+  unregisterNodeRef: (id: string) => void;
+  registerPortHandlers: (portId: string, handlers: PortHandlers) => void;
+  unregisterPortHandlers: (portId: string) => void;
+  updatePortValue: (id: string, value: any, slot?: "draft" | "computed" | "committed") => void;
+}
+
+// The 2nd and 3rd generics [["zustand/immer", never]] tell TypeScript 
+// that 'set' uses Immer's mutation-style updates.
+export const createExecutionSlice: StateCreator<
+  GraphState, 
+  [["zustand/immer", never]], 
+  [], 
+  ExecutionSlice
+> = (set, _get) => ({
   nodeRefs: {},
   handlerRegistry: {},
 

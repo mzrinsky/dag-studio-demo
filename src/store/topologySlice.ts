@@ -1,5 +1,5 @@
 import { StateCreator } from "zustand";
-import { GraphState, NodeState, PortState, PortType } from "./types";
+import { GraphState, NodeState, PortState, PortType, ConnectionState } from "./types";
 
 const TYPE_COMPATIBILITY: Record<PortType, Set<PortType>> = {
   any: new Set(["any", "number", "string", "boolean"]),
@@ -18,8 +18,8 @@ const isValidConnection = (
 const wouldCreateCycle = (
   sourceNodeId: string,
   targetNodeId: string,
-  connections: any[],
-  ports: any,
+  connections: ConnectionState[],
+  ports: Record<string, PortState>,
 ): boolean => {
   const adjList: Record<string, string[]> = {};
   connections.forEach((conn) => {
@@ -43,14 +43,34 @@ const wouldCreateCycle = (
   return false;
 };
 
-export const createTopologySlice: StateCreator<GraphState> = (set, get) => ({
+// 1. Define the TopologySlice interface
+export interface TopologySlice {
+  nodes: Record<string, NodeState>;
+  ports: Record<string, PortState>;
+  connections: ConnectionState[];
+  updateNodePosition: (id: string, x: number, y: number) => void;
+  bringToFront: (id: string) => void;
+  addNode: (node: NodeState, ports: PortState[]) => void;
+  removeNode: (id: string) => void;
+  addConnection: (sourcePortId: string, targetPortId: string) => void;
+}
+
+// 2. Use the Immer-aware StateCreator generic
+export const createTopologySlice: StateCreator<
+  GraphState,
+  [["zustand/immer", never]],
+  [],
+  TopologySlice
+> = (set, get) => ({
   nodes: {},
   ports: {},
   connections: [],
 
   updateNodePosition: (id, x, y) =>
     set((state) => {
-      state.nodes[id].position = { x, y };
+      if (state.nodes[id]) {
+        state.nodes[id].position = { x, y };
+      }
     }),
 
   bringToFront: (id) =>
@@ -58,7 +78,7 @@ export const createTopologySlice: StateCreator<GraphState> = (set, get) => ({
       const nodes = Object.values(state.nodes);
       if (nodes.length === 0) return;
       const maxZ = nodes.reduce((max, n) => Math.max(max, n.zIndex), 0);
-      if (state.nodes[id]) state.nodes[id].zIndex = maxZ + 1;
+      if (state.nodes[id]) state.nodes[id] = { ...state.nodes[id], zIndex: maxZ + 1 };
     }),
 
   addNode: (node, ports) => {
@@ -84,7 +104,7 @@ export const createTopologySlice: StateCreator<GraphState> = (set, get) => ({
     const associatedPorts = Object.values(ports).filter((p) => p.nodeId === id);
     const portIds = new Set(associatedPorts.map((p) => p.id));
     const associatedConns = connections.filter(
-      (c) => portIds.has(c.sourcePortId) || portIds.has(c.targetPortId),
+      (c: ConnectionState) => portIds.has(c.sourcePortId) || portIds.has(c.targetPortId),
     );
 
     get().executeCommand({
@@ -94,7 +114,7 @@ export const createTopologySlice: StateCreator<GraphState> = (set, get) => ({
           delete s.ports[p.id];
         });
         s.connections = s.connections.filter(
-          (c) => !portIds.has(c.sourcePortId) && !portIds.has(c.targetPortId),
+          (c: ConnectionState) => !portIds.has(c.sourcePortId) && !portIds.has(c.targetPortId),
         );
       },
       undo: (s) => {
@@ -126,7 +146,7 @@ export const createTopologySlice: StateCreator<GraphState> = (set, get) => ({
       },
       undo: (s) => {
         s.connections = s.connections.filter(
-          (c) =>
+          (c: ConnectionState) =>
             !(
               c.sourcePortId === sourcePortId && c.targetPortId === targetPortId
             ),

@@ -21,6 +21,15 @@ The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure s
     *   **Committed State**: Structural changes (e.g., creating a connection, adding a node) are wrapped in a `Command` pattern and pushed to the `historyManager` for undo/redo support.
 *   **The `nodeRef` Binding**: The `nodeRef` property in Port configurations must bind to a **React Ref**. This allows the `Ports` engine to interact directly with the underlying component instance, bypassing unnecessary re-renders for high-frequency data updates.
 
+## 2.1 Type Architecture (The Store Pattern)
+To prevent type erasure and "missing property" errors in the sliced store, all slices must adhere to the following TypeScript pattern:
+
+*   **The Slice Interface**: Every slice must define its own dedicated interface (e.g., `TopologySlice`) containing only the state and actions it manages.
+*   **The 4-Generic StateCreator**: Slices must be typed using the full `StateCreator` signature to maintain access to the global state while satisfying the slice's own return type:
+    `StateCreator<GraphState, [["zustand/immer", never]], [], SliceInterface>`
+*   **Immer Integration**: Since the store utilizes Immer for direct mutations, the second generic `[["zustand/immer", never]]` is **mandatory**. This ensures that `set((state) => { state.x = y })` is recognized as returning `void` rather than requiring a new state object.
+*   **State Access**: Use the first generic (`GraphState`) to ensure that `set` and `get` have full visibility of the entire graph topology, regardless of which slice the logic resides in.
+
 ## 3. Hybrid Execution Model
 The system supports three concurrent data-flow modes. The distinction is defined by the handler used in the Port configuration.
 

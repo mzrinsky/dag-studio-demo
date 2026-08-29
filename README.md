@@ -94,6 +94,7 @@ Data does not simply exist in slots; it is **promoted** based on confidence and 
 
 For a detailed implementation guide on the system's advanced layers, refer to the following specification documents in `/docs/drafts`:
 
+*   **[Store Execution Engine](docs/drafts/STORE_EXECUTION.md)**: Internal mechanics of data propagation, signal processing, and graph integrity (The "Engine").
 *   **[Distribution Boundary](docs/drafts/DISTRIBUTION_BOUNDARY.md)**: Defines the three-tier stack separation (Data Engine → Visual Framework → Product App).
 *   **[UI State Management](docs/drafts/UI_STATE_MANAGEMENT.md)**: Detailed logic for the "Data Quad" (Default, Committed, Computed, Draft) and state recovery.
 *   **[Collaboration State](docs/drafts/COLLABORATION_STATE.md)**: The "Soft-lock" mechanism, presence schema, and conflict resolution logic.

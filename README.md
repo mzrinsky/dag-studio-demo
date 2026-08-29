@@ -40,7 +40,7 @@ While traditional node libraries (like ReactFlow) treat connections as simple li
 
 ## ⚙️ Architecture Deep Dive
 
-The framework is built around four core, interconnected components:
+The framework is built around five core, interconnected components:
 
 ### 1. The Hierarchy (The Flow Structure)
 *   **`<DAGFlow>`**: The root context provider. Manages the global coordinate system (D3) and provides the canvas for rendering nodes and connections.
@@ -57,24 +57,36 @@ To ensure stability and persistence, DAG Studio utilizes a **Centralized State E
     *   **Transient State**: High-frequency updates (e.g., dragging) update the store directly for immediate feedback.
     *   **Committed State**: Structural changes are wrapped in a `Command` pattern for undo/redo support via a `historyManager`.
 *   **Performance Ref Binding**: The `nodeRef` property binds to a direct **React Ref**, enabling the `Ports` engine to interact with component instances without triggering unnecessary re-renders.
+*   **Signal Memory Strategy**: To prevent Garbage Collection spikes during high-frequency temporal flow (`onSample`), the store utilizes a **Buffer Pool (Flyweight Pattern)**. Instead of decentralized buffers, the store manages contiguous memory slabs and provides Ports with lightweight "views," ensuring O(1) access and minimal memory overhead.
 
 ### 3. Hybrid Execution Model (The Data Stability Gradient)
-Unlike traditional systems that force a single execution mode, DAG Studio supports three **complementary execution modes** that operate concurrently. These modes are the mechanisms the Store uses to manage the **Data Stability Gradient**—the process of moving a value through four distinct state slots (The Data Quad) to ensure system stability:
+Unlike traditional systems that force a single execution mode, DAG Studio supports four **complementary execution modes** that operate concurrently. These modes are the mechanisms the Store uses to manage the **Data Stability Gradient**—the process of moving a value through the "Data Quad" state slots to ensure system stability:
 
 *   🟢 **Reactive Flow (`onChange`)** $\rightarrow$ **Draft Value**
     *   **Nature**: Volatile, immediate, low-precision.
-    *   **Trigger**: Triggered by the Store upon immediate change detection.
+    *   **Trigger**: Triggered by the Store upon immediate change detection (e.g., UI interaction).
     *   **Use Case**: UI updates, live calculations, and real-time previews.
 *   🟠 **Imperative Flow (`onProcess`)** $\rightarrow$ **Computed Value**
     *   **Nature**: Verified, high-precision, asynchronous.
     *   **Trigger**: Triggered by the Store via a global "Run" signal or dependency resolution.
     *   **Use Case**: Heavy computation, API calls, and background jobs.
+*   🟣 **Temporal Flow (`onSample`)** $\rightarrow$ **Signal Value**
+    *   **Nature**: High-frequency, clock-synced, stateful.
+    *   **Trigger**: Triggered by a system clock/sample rate (e.g., Audio context).
+    *   **Use Case**: Synthesizers, oscillators, and real-time signal processing.
 *   🔵 **Persistent Flow (`onCommit`)** $\rightarrow$ **Committed Value**
     *   **Nature**: Permanent system state (The "Source of Truth").
     *   **Trigger**: Triggered by the Store upon finalization (e.g., `onBlur`, `Enter`, or "Save").
     *   **Use Case**: Database persistence and permanent configuration.
 
-**Lifecycle Flow:** `Default Value` $\rightarrow$ `Draft` $\rightarrow$ `Computed` $\rightarrow$ `Committed`.
+#### 🔄 The Promotion Logic
+Data does not simply exist in slots; it is **promoted** based on confidence and intent:
+- **Draft $\rightarrow$ Computed**: Occurs when an `onProcess` job successfully returns a high-precision result.
+- **Computed $\rightarrow$ Committed**: Occurs when an `onCommit` handler persists the value to the system of record.
+- **Signal $\rightarrow$ Draft**: Occurs when a temporal signal is sampled at a specific point in time for UI visualization.
+
+**Linear Lifecycle:** `Default Value` $\rightarrow$ `Draft` $\rightarrow$ `Computed` $\rightarrow$ `Committed`.
+**Temporal Cycle:** `Signal Value` $\rightleftharpoons$ `Feedback Loop` (via RingBuffer).
 
 ---
 
@@ -89,8 +101,20 @@ For a detailed implementation guide on the system's advanced layers, refer to th
 *   **[Persistence Strategy](docs/drafts/PERSISTENCE_STRATEGY.md)**: The Append-Only Event Journal, snapshotting, and global state recovery.
 *   **[Connection Routing](docs/drafts/CONNECTION_ROUTING.md)**: Logic for path generation (Linear, Organic, Orthogonal), the Layered Overlay Model, and dynamic performance degradation.
 
----
+### 🔌 The Port Interface Contract
+To ensure compatibility across the framework, every port must adhere to the following definition within the `<Ports>` binding engine:
 
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `label` | `string` | The user-facing name of the port. |
+| `type` | `PortType` | Strict type descriptor (Primitives or Custom IDs) used for connection validation. |
+| `nodeRef` | `React.Ref` | Direct binding to the inner component instance. |
+| `onChange?` | `(val: T) => void` | Handler for reactive, event-driven updates. |
+| `onProcess?` | `() => Promise<T>` | Handler for asynchronous, high-precision jobs. |
+| `onSample?` | `(state: RingBuffer) => T` | Handler for clock-synced signal generation. |
+| `onCommit?` | `(val: T) => void` | Handler for permanent state persistence. |
+
+---
 
 ## 📜 Developer Guardrails (The Laws)
 
@@ -100,8 +124,11 @@ To maintain the integrity of the graph, all contributions must follow these laws
 2.  **Law of Binding**: Every data ingress or egress point must be explicitly declared within the `<Ports>` metadata.
 3.  **Law of Identity**: Never rely on array indices for keys; always use UUIDs.
 4.  **Law of Execution**: Long-running tasks **must** use `onProcess` to protect the main UI thread.
-5.  **Law of Strict Typing**: Every port **must** have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows.
-6.  **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must block any connection that creates a closed loop across the graph (excluding internal node feedback). This ensures that real-time data streams remain stable and cannot crash the browser.
+5. **Law of Strict Typing**: Every port **must** have an explicit type descriptor. The Store performs a compatibility check between the source output and target input using these descriptors to prevent invalid data flows. This system supports both built-in primitives and user-defined custom types.
+6.  **Law of Contextual Acyclicity**: The system manages cycles based on the execution context to ensure stability:
+    *   **Reactive Flow (`onChange`)**: Cycles are permitted but governed by a "Circuit Breaker" (max propagation depth) to prevent browser-locking infinite loops.
+    *   **Imperative Flow (`onProcess`)**: Strict DAG (Directed Acyclic Graph) enforcement is required. The engine must block or flag cycles during the topological sort to ensure jobs have a deterministic termination point.
+    *   **Temporal Flow (`onSample`)**: Cycles are explicitly permitted as "Feedback Loops," utilizing state-buffering from the previous frame ($t-1$) to maintain mathematical stability.
 
 ---
 
@@ -117,7 +144,8 @@ To maintain the integrity of the graph, all contributions must follow these laws
                     label: "Live Signal",
                     type: "number", // REQUIRED: Type must be explicitly defined
                     nodeRef: myComponentRef, 
-                    onChange: (val) => { /* Reactive: Immediate push */ }
+                    onChange: (val) => { /* Reactive: Immediate push */ },
+                    onSample: (buf) => { /* Temporal: Clock-synced audio/signal */ }
                 }
             ]}
             outputs={[

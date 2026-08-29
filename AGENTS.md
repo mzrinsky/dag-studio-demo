@@ -31,7 +31,7 @@ To prevent type erasure and "missing property" errors in the sliced store, all s
 *   **State Access**: Use the first generic (`GraphState`) to ensure that `set` and `get` have full visibility of the entire graph topology, regardless of which slice the logic resides in.
 
 ## 3. Hybrid Execution Model
-The system supports three concurrent data-flow modes. The distinction is defined by the handler used in the Port configuration.
+The system supports four concurrent data-flow modes. The distinction is defined by the handler used in the Port configuration.
 
 ### The Data Stability Gradient (The Data Quad)
 Data in DAG Studio is not a single value, but a lifecycle. A Port manages four distinct state slots to ensure stability:
@@ -39,8 +39,10 @@ Data in DAG Studio is not a single value, but a lifecycle. A Port manages four d
 2. **Draft Value (`onChange`)**: The volatile, immediate state. High-frequency, low-precision.
 3. **Computed Value (`onProcess`)**: The verified result of a job. High-precision, asynchronous.
 4. **Committed Value (`onCommit`)**: The persisted system state. The "Source of Truth" for databases.
+5. **Signal Value (`onSample`)**: The temporal state. Clock-synced and high-frequency.
 
 **Lifecycle Flow:** `Draft` $\rightarrow$ `Computed` $\rightarrow$ `Committed`.
+**Temporal Cycle:** `Signal` $\rightleftharpoons$ `Feedback Loop` (via RingBuffer).
 
 ### A. Reactive Flow (`onChange`)
 *   **Trigger**: Immediate (on value change).
@@ -54,7 +56,13 @@ Data in DAG Studio is not a single value, but a lifecycle. A Port manages four d
 *   **Use Case**: API calls, heavy computations, background worker processes.
 *   **Implementation**: The handler returns a value which the store then writes to the **Computed Value** slot.
 
-### C. Persistent Flow (`onCommit`)
+### C. Temporal Flow (`onSample`)
+*   **Trigger**: System clock or sample rate (e.g., AudioContext, `requestAnimationFrame`).
+*   **Behavior**: High-frequency execution that reads from a shared memory buffer rather than the standard state tree to avoid React render cycles.
+*   **Use Case**: Oscillators, signal processing, and real-time synthesis.
+*   **Implementation**: Utilizes the **Signal Memory Strategy**. The store manages contiguous memory slabs (Buffer Pools) using the Flyweight pattern; `onSample` handlers receive a view of this buffer to ensure $O(1)$ access and minimal GC pressure.
+
+### D. Persistent Flow (`onCommit`)
 *   **Trigger**: Finalization (e.g., `onBlur`, `Enter` key, or explicit "Save").
 *   **Behavior**: The system transitions a value from Draft/Computed to Committed in the data model.
 *   **Use Case**: Saving user settings, updating node configurations, persisting graph state.
@@ -65,8 +73,11 @@ Data in DAG Studio is not a single value, but a lifecycle. A Port manages four d
 2. **Law of Binding**: All data entering or leaving a component must be declared in the `<Ports>` metadata.
 3. **Law of Identity**: Never use array indices as keys for nodes or ports; always use UUIDs.
 4. **Law of Execution**: Long-running tasks **must** be implemented via `onProcess` to prevent blocking the main UI thread.
-5. **Law of Strict Typing**: Every port must have an explicit type. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability.
-6. **Law of Acyclicity**: To prevent infinite loops in Reactive Flow, the system must prevent circular dependencies. While a Port may connect to another Port within the same Node (internal feedback), the global state engine must block any connection that creates a closed loop across the graph.
+5. **Law of Strict Typing**: Every port must have an explicit type descriptor. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability. This supports both primitives and custom domain-specific types.
+6. **Law of Contextual Acyclicity**: The system manages cycles based on the execution context:
+    *   **Reactive Flow (`onChange`)**: Cycles are permitted but governed by a "Circuit Breaker" (max propagation depth) to prevent browser-locking infinite loops.
+    *   **Imperative Flow (`onProcess`)**: Strict DAG enforcement is mandatory. The engine must block any connection that creates a closed loop to ensure jobs have a deterministic termination point.
+    *   **Temporal Flow (`onSample`)**: Cycles are explicitly permitted as "Feedback Loops," utilizing state-buffering from the previous frame ($t-1$) to maintain mathematical stability.
 7. **Law of Command**: Any structural modification to the graph topology (adding/removing nodes, ports, or connections) **must** be implemented via the `Command` pattern to ensure atomic undo/redo capability. Direct mutation of the topology outside of `executeCommand` is strictly forbidden.
 8. **Law of Verification**: No logic shall be committed to the global store without corresponding unit tests. All tests must utilize `resetStore()` to ensure isolation and specifically verify the three pillars: Topology (legality/cycles), Execution (Data Quad lifecycle), and History (undo/redo atomicity).
 9. **Law of Attribution**: To maintain a transparent audit trail of human vs. AI contributions, every commit must include a footer identifying the AI's role using the following strict taxonomy:

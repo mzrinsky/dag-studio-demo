@@ -55,15 +55,15 @@ export const createExecutionSlice: StateCreator<
       else if (slot === "committed") port.committedValue = value;
       else if (slot === "computed") port.computedValue = value;
 
-      const downstream = state.connections.filter((c) => c.sourcePortId === id);
-      downstream.forEach((conn) => {
-        const targetPort = state.ports[conn.targetPortId];
-        const handlers = state.handlerRegistry[conn.targetPortId];
+      const downstream = state.links.filter((c) => c.sourcePortId === id);
+      downstream.forEach((link) => {
+        const targetPort = state.ports[link.targetPortId];
+        const handlers = state.handlerRegistry[link.targetPortId];
         if (!targetPort || !handlers) return;
 
         const context: PortContext = {
-          portId: conn.targetPortId,
-          nodeId: targetPort.nodeId,
+          portId: link.targetPortId,
+          moduleId: targetPort.moduleId,
           previousValue: prevValue,
           currentValue: value,
         };

@@ -7,12 +7,12 @@ setupStoreMock();
 describe("Topology Slice", () => {
   beforeEach(() => resetStore());
 
-  it("should prevent connections between incompatible types", () => {
+  it("should prevent patches between incompatible types", () => {
     useGraphStore.setState((state) => {
       state.ports = {
         p1: {
           id: "p1",
-          nodeId: "n1",
+          moduleId: "n1",
           label: "S1",
           type: "number",
           direction: "out",
@@ -23,7 +23,7 @@ describe("Topology Slice", () => {
         },
         p2: {
           id: "p2",
-          nodeId: "n2",
+          moduleId: "n2",
           label: "S2",
           type: "string",
           direction: "in",
@@ -35,8 +35,8 @@ describe("Topology Slice", () => {
       };
     });
 
-    useGraphStore.getState().addConnection("p1", "p2");
-    expect(useGraphStore.getState().connections.length).toBe(0);
+    useGraphStore.getState().addPatch("p1", "p2");
+    expect(useGraphStore.getState().links.length).toBe(0);
   });
 
   it("should prevent circular dependencies (A -> B -> A)", () => {
@@ -44,7 +44,7 @@ describe("Topology Slice", () => {
       state.ports = {
         p1: {
           id: "p1",
-          nodeId: "n1",
+          moduleId: "n1",
           label: "out",
           type: "any",
           direction: "out",
@@ -55,7 +55,7 @@ describe("Topology Slice", () => {
         },
         p2: {
           id: "p2",
-          nodeId: "n2",
+          moduleId: "n2",
           label: "in",
           type: "any",
           direction: "in",
@@ -66,7 +66,7 @@ describe("Topology Slice", () => {
         },
         p3: {
           id: "p3",
-          nodeId: "n2",
+          moduleId: "n2",
           label: "out",
           type: "any",
           direction: "out",
@@ -77,7 +77,7 @@ describe("Topology Slice", () => {
         },
         p4: {
           id: "p4",
-          nodeId: "n1",
+          moduleId: "n1",
           label: "in",
           type: "any",
           direction: "in",
@@ -89,9 +89,9 @@ describe("Topology Slice", () => {
       };
     });
 
-    useGraphStore.getState().addConnection("p1", "p2"); // n1 -> n2
-    useGraphStore.getState().addConnection("p3", "p4"); // n2 -> n1 (Cycle!)
+    useGraphStore.getState().addPatch("p1", "p2"); // n1 -> n2
+    useGraphStore.getState().addPatch("p3", "p4"); // n2 -> n1 (Cycle!)
 
-    expect(useGraphStore.getState().connections.length).toBe(1);
+    expect(useGraphStore.getState().links.length).toBe(1);
   });
 });

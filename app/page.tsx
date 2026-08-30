@@ -1,5 +1,5 @@
 import DAGFlow from '@/components/DAGFlow';
-import Node from '@/components/Node';
+import Module from '@/components/Module';
 import Ports from '@/components/Ports'; // Import Ports component
 
 // Mocking the functionality expected by the components for demonstration purposes
@@ -8,13 +8,12 @@ const mockInputState = { value: "Initial Data A", label: "Source A" };
 const mockOutputState = { value: "Processed Value X", label: "Output X" };
 
 // --------------------------------------------------------------
-// Node 1: Data Source Node (Only Output)
+// Module 1: Data Source Module (Only Output)
 // -------------------------------------------------------
-const SourceNode = () => (
-  <Node title="Data Source (Input)">
+const SourceModule = () => (
+  <Module title="Data Source (Input)">
     <Ports
         outputs={[
-            // REMOVED nodeRef: Should be managed internally by Node/Ports
             { label: "DataStream" }
         ]}>
       {/* The content component that reads from the Ports context */}
@@ -26,21 +25,19 @@ const SourceNode = () => (
             disabled
         />
     </Ports>
-  </Node>
+  </Module>
 );
 
 // ---------------------------------------------------
-// Node 2: Transformation Node (Input -> Output)
+// Module 2: Transformation Module (Input -> Output)
 // ----------------------------------------------------------------------
-const TransformNode = () => (
-    <Node title="Transformer Node">
+const TransformModule = () => (
+    <Module title="Transformer Module">
         <Ports
             inputs={[
-                // REMOVED nodeRef: Should be managed internally by Node/Ports
                 { label: "DataStream" }
             ]}
             outputs={[
-                // REMOVED nodeRef: Should be managed internally by Node/Ports
                 { label: "TransformedData" }
             ]}>
                 {/* The content component that reads from the Ports context */}
@@ -58,17 +55,14 @@ const TransformNode = () => (
                     className="w-full p-2 border border-gray-300 rounded-md"
                 />
         </Ports>
-  </Node>
+  </Module>
 );
 
 export default function Home() {
   return (
     <DAGFlow>
-        <SourceNode />
-        <TransformNode />
+        <SourceModule />
+        <TransformModule />
     </DAGFlow>
   );
 }
-
-
-

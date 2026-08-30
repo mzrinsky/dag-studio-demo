@@ -1,8 +1,8 @@
 import { TooltipProvider } from '@/components/ui/tooltip'; // Assuming shadcn/ui tooltip components are available
 
 /**
- * DAGFlow Component: The top-level container orchestrating the nodes.
- * Handles connection visualization logic (abstracted here).
+ * DAGFlow Component: The top-level container orchestrating the modules.
+ * Handles patch visualization logic (abstracted here).
  */
 const DAGFlow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -12,11 +12,11 @@ const DAGFlow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <p className="text-gray-500 mt-1">Visual Data Flow Framework</p>
       </header>
       
-      {/* Placeholder for connection manager canvas */}
+      {/* Placeholder for patch manager canvas */}
       <div className="relative border-2 border-dashed border-indigo-200 bg-white/70 min-h-[600px] flex justify-center items-center">
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
-            {/* Placeholder for visual connection lines using SVG/Canvas */}
-            <span className="text-xl">Connections Visualized Here</span>
+            {/* Placeholder for visual link lines using SVG/Canvas */}
+            <span className="text-xl">Links Visualized Here</span>
         </div>
         <TooltipProvider>
         {children}

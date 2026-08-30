@@ -12,7 +12,7 @@ describe("Execution Slice", () => {
       state.ports = {
         p_out: {
           id: "p_out",
-          nodeId: "n_a",
+          moduleId: "n_a",
           label: "Out",
           type: "number",
           direction: "out",
@@ -23,7 +23,7 @@ describe("Execution Slice", () => {
         },
         p_in: {
           id: "p_in",
-          nodeId: "n_b",
+          moduleId: "n_b",
           label: "In",
           type: "number",
           direction: "in",
@@ -33,7 +33,7 @@ describe("Execution Slice", () => {
           computedValue: 0,
         },
       };
-      state.connections = [
+      state.links = [
         { id: "c1", sourcePortId: "p_out", targetPortId: "p_in" },
       ];
     });
@@ -61,7 +61,7 @@ describe("Execution Slice", () => {
       state.ports = {
         p1: {
           id: "p1",
-          nodeId: "n1",
+          moduleId: "n1",
           label: "P1",
           type: "any",
           direction: "out",

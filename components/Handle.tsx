@@ -2,7 +2,7 @@ import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'; // Assuming shadcn/ui tooltip components are available
 
 /**
- * Handle Component: Represents a connection point (Input or Output).
+ * Handle Component: Represents a port interface point (Input or Output).
  * Displays only a dot, using the label as a tooltip on hover.
  */
 const Handle: React.FC<{ isInput: boolean; label: string }> = ({ isInput, label }) => {

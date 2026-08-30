@@ -16,9 +16,9 @@ export const useGraphStore = create<GraphState>()(
     {
       name: 'dag-studio-storage',
       partialize: (state) => ({
-        nodes: state.nodes,
+        modules: state.modules,
         ports: state.ports,
-        connections: state.connections,
+        links: state.links,
         // Transient states (nodeRefs, handlerRegistry, history) are omitted
       }),
     }

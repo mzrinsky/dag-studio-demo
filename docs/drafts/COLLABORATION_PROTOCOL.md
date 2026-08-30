@@ -5,11 +5,11 @@ The system employs a hybrid transport strategy based on the urgency and persiste
 
 * **Real-time Stream (WebSockets/WebRTC/UDP)**: 
     * **Presence**: (Cursors) - Extremely high frequency.
-    * **Spatial Locks**: (Moving a node) - High frequency, ephemeral. These are "intent" signals that should be broadcast instantly to prevent "selection jumping."
+    * **Spatial Locks**: (Moving a module) - High frequency, ephemeral. These are "intent" signals that should be broadcast instantly to prevent "selection jumping."
     * **Data Locks**: (Focusing an input) - Medium frequency.
 * **Reliable Sync (REST/GraphQL/WebSockets/TCP)**: 
-    * **Structural Locks**: (Deleting/Adding nodes) - Low frequency, high importance. Requires acknowledgement to ensure graph integrity.
-    * **Committed Value** & **Node Position (Final)**.
+    * **Structural Locks**: (Deleting/Adding modules) - Low frequency, high importance. Requires acknowledgement to ensure graph integrity.
+    * **Committed Value** & **Module Position (Final)**.
 
 ## 2. Command Propagation & History
 To maintain a predictable user experience, the system implements **Scoped Local History**. Undo/Redo operations are tied to the individual user's session, not the global document state.
@@ -18,7 +18,7 @@ To maintain a predictable user experience, the system implements **Scoped Local 
 *   **Remote Mutation**: Changes received from other users are applied as direct store mutations. These are **never** pushed to the local undo stack.
 *   **The Undo Execution Flow**:
     1.  **Pop**: User triggers Undo → system pops the last `Command` from the local stack.
-    2.  **Validate**: Before executing the inverse action, the system checks if the target entity (Node/Port/Connection) still exists and is in a state that allows the inverse operation.
+    2.  **Validate**: Before executing the inverse action, the system checks if the target entity (Module/Port/Link) still exists and is in a state that allows the inverse operation.
     3.  **Execute or Skip (Vacuous Truth)**:
         *   If the target was already deleted by another user, the command is considered "vacuously true" (the desired end state is already achieved). The system silently discards the command and moves to the next item in the stack.
         *   If the target exists, the inverse command is executed and broadcast to all clients.

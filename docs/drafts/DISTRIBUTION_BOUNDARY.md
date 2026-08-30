@@ -11,7 +11,7 @@ The hierarchy is: **Data Engine** → **Visual Framework** → **Product Impleme
 The Engine is the source of truth. It is a state machine that manages the mathematical and structural integrity of the graph. While it is "headless" (it does not render pixels), it is **React-integrated** to allow for high-performance bindings.
 
 ### Core Responsibilities:
-*   **Graph Topology**: The registry of nodes, ports, and connections.
+*   **Graph Topology**: The registry of modules, ports, and links.
 *   **Validation Layer**: Cycle detection (Acyclicity) and Type Validation.
 *   **State Machinery**: Managing the "Data Quad" (Default → Committed → Computed → Draft).
 *   **Command Logic**: The `historyManager` and abstract `Command` pattern for undo/redo.
@@ -25,12 +25,12 @@ The Engine is the source of truth. It is a state machine that manages the mathem
 ---
 
 ## 3. Tier 2: The Visual Framework (The "SDK" Layer)
-The Visual Framework is a UI library that wraps the Data Engine. It provides the "Node Editor" experience. A developer should be able to use this tier to build their own DAG-based tool without needing your backend.
+The Visual Framework is a UI library that wraps the Data Engine. It provides the "Module Editor" experience. A developer should be able to use this tier to build their own DAG-based tool without needing your backend.
 
 ### Core Responsibilities:
 *   **The Binding Bridge**: The `<Ports>` engine and the logic connecting React Refs to the Data Engine.
-*   **Visual Primitives**: The `<DAGFlow>`, `<ConnectionCanvas>`, and `<Node>` shell components.
-*   **Interaction Layer**: Handling drag-and-drop, zooming, and the visual "plugging" of ports.
+*   **Visual Primitives**: The `<DAGFlow>`, `<ConnectionCanvas>`, and `<Module>` shell components.
+*   **Interaction Layer**: Handling drag-and-drop, zooming, and the visual "patching" of ports.
 *   **Generic UI State**: Managing z-indices, selection highlights, and canvas viewport.
 *   **Theming Engine**: Providing a default visual identity and a set of themeable CSS variables or a Provider, allowing the Product layer to inject custom branding without modifying the framework core.
 
@@ -48,7 +48,7 @@ The Application is the concrete "skin" and "plumbing." It is the final product t
 *   **Visual Identity**: Final brand-specific styling, custom color palettes, and high-level UX orchestrations (e.g., Conflict popovers, onboarding tours).
 *   **The Transport Layer**: Implementation of WebSockets/WebRTC for real-time presence and sync.
 *   **Persistence Orchestration**: The server-side Event Journal and database snapshots.
-*   **Business Logic (Workers)**: The actual functional code inside the nodes (the specific APIs or transforms).
+*   **Business Logic (Workers)**: The actual functional code inside the modules (the specific APIs or transforms).
 *   **Identity Management**: User accounts, permissions, and mapping `userIds` to `presenceColors`.
 
 ---
@@ -65,8 +65,8 @@ The Application is the concrete "skin" and "plumbing." It is the final product t
 | **Transport** | None | None | WebSocket / API |
 | **Goal** | Data Stability | Component Reusability | User Value |
 
-### Example Flow of a "Node Move"
-1.  **Product App**: User drags a node.
+### Example Flow of a "Module Move"
+1.  **Product App**: User drags a module.
 2.  **Visual Framework**: Captures the mouse event → Updates the coordinate in the Engine.
 3.  **Data Engine**: Validates the move → Updates the state registry.
 4.  **Product App**: Detects the state change → Sends the update to the `PostgresEventJournal` via API.

@@ -2,7 +2,7 @@ export type PortType = "number" | "string" | "boolean" | "any";
 
 export interface PortState {
   id: string;
-  nodeId: string;
+  moduleId: string;
   label: string;
   type: PortType;
   direction: "in" | "out";
@@ -12,15 +12,14 @@ export interface PortState {
   computedValue: any;
 }
 
-export interface NodeState {
+export interface ModuleState {
   id: string;
   position: { x: number; y: number };
   zIndex: number;
   type: string;
 }
 
-// Renamed from Connection to ConnectionState for consistency
-export interface ConnectionState {
+export interface LinkState {
   id: string;
   sourcePortId: string;
   targetPortId: string;
@@ -28,7 +27,7 @@ export interface ConnectionState {
 
 export interface PortContext {
   portId: string;
-  nodeId: string;
+  moduleId: string;
   previousValue: any;
   currentValue: any;
 }
@@ -46,9 +45,9 @@ export interface Command {
 
 export interface GraphState {
   // Topology
-  nodes: Record<string, NodeState>;
+  modules: Record<string, ModuleState>;
   ports: Record<string, PortState>;
-  connections: ConnectionState[]; // Updated to ConnectionState
+  links: LinkState[];
 
   // Execution
   nodeRefs: Record<string, any>;
@@ -59,11 +58,11 @@ export interface GraphState {
   historyIndex: number;
 
   // Actions
-  updateNodePosition: (id: string, x: number, y: number) => void;
+  updateModulePosition: (id: string, x: number, y: number) => void;
   bringToFront: (id: string) => void;
-  addNode: (node: NodeState, ports: PortState[]) => void;
-  removeNode: (id: string) => void;
-  addConnection: (sourcePortId: string, targetPortId: string) => void;
+  addModule: (module: ModuleState, ports: PortState[]) => void;
+  removeModule: (id: string) => void;
+  addPatch: (sourcePortId: string, targetPortId: string) => void;
 
   updatePortValue: (
     id: string,

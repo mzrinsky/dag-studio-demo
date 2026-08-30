@@ -4,21 +4,21 @@
 DAG Studio is a visual programming framework centered around **Data Ports**. The architecture strictly decouples visual presentation from data flow management by centralizing all graph logic in a global state engine.
 
 ### The Hierarchy
-*   **`<DAGFlow>`**: The root visual context. Manages the global coordinate system (via D3) and provides the canvas for rendering nodes and connections.
-*   **`<ConnectionCanvas>`**: A pure view layer. Subscribes to the store's connection state and renders SVG edges between ports.
-*   **`<Node>` (Presentation Shell)**: A "dumb" structural container. Responsible for layout, visual encapsulation, and hosting one or more Port configurations. It acts as a spatial boundary; data flows between Ports, regardless of whether those Ports reside in the same Node or different ones.
-*   **`<Ports>` (Binding Engine)**: The intelligence layer. Wraps React components to declare the node's interface. It defines the **Ports** (the static sockets) and manages the lifecycle of the **Plug** (the draggable connection lead) during the connection process.
+*   **`<DAGFlow>`**: The root visual context. Manages the global coordinate system (via D3) and provides the canvas for rendering modules and links.
+*   **`<LinkCanvas>`**: A pure view layer. Subscribes to the store's link state and renders SVG links between ports.
+*   **`<Module>` (Module Shell)**: A "dumb" structural container. Responsible for layout, visual encapsulation, and hosting one or more Port configurations. It acts as a spatial boundary; data flows between Ports, regardless of whether those Ports reside in the same Module or different ones.
+*   **`<Ports>` (Binding Engine)**: The intelligence layer. Wraps React components to declare the module's interface. It defines the **Ports** (the static sockets) and manages the lifecycle of the **Plug** (the draggable patch lead) during the patching process.
 
 ## 2. Identity & State Management
 The system utilizes a **Centralized State Engine** (Zustand + Immer) to ensure stability, persistence, and predictable data flow.
 
 *   **Slicing Pattern**: To maintain scalability and separate concerns, the global store is partitioned into domain-specific slices (e.g., `topologySlice` for structure, `executionSlice` for data flow, `historySlice` for undo/redo).
-*   **UUIDs**: Every Node and Port must have a unique ID. Array indices are strictly forbidden as keys.
-*   **Global Registry**: All node positions, z-indices, port values, and connection mappings are stored in the `useGraphStore`. This allows for logic (like connection validation) to exist independently of the React component tree.
-*   **Z-Index Management**: Node layering is treated as state within the store, allowing for "Bring to Front" functionality and persistence across sessions.
+*   **UUIDs**: Every Module and Port must have a unique ID. Array indices are strictly forbidden as keys.
+*   **Global Registry**: All module positions, z-indices, port values, and link mappings are stored in the `useGraphStore`. This allows for logic (like patch validation) to exist independently of the React component tree.
+*   **Z-Index Management**: Module layering is treated as state within the store, allowing for "Bring to Front" functionality and persistence across sessions.
 *   **State Persistence & History**: 
-    *   **Transient State**: High-frequency updates (e.g., dragging a node) update the store directly for immediate UI feedback.
-    *   **Committed State**: Structural changes (e.g., creating a connection, adding a node) are wrapped in a `Command` pattern and pushed to the `historyManager` for undo/redo support.
+    *   **Transient State**: High-frequency updates (e.g., dragging a module) update the store directly for immediate UI feedback.
+    *   **Committed State**: Structural changes (e.g., creating a patch, adding a module) are wrapped in a `Command` pattern and pushed to the `historyManager` for undo/redo support.
 *   **The `nodeRef` Binding**: The `nodeRef` property in Port configurations must bind to a **React Ref**. This allows the `Ports` engine to interact directly with the underlying component instance, bypassing unnecessary re-renders for high-frequency data updates.
 
 ## 2.1 Type Architecture (The Store Pattern)
@@ -65,20 +65,20 @@ Data in DAG Studio is not a single value, but a lifecycle. A Port manages four d
 ### D. Persistent Flow (`onCommit`)
 *   **Trigger**: Finalization (e.g., `onBlur`, `Enter` key, or explicit "Save").
 *   **Behavior**: The system transitions a value from Draft/Computed to Committed in the data model.
-*   **Use Case**: Saving user settings, updating node configurations, persisting graph state.
+*   **Use Case**: Saving user settings, updating module configurations, persisting graph state.
 *   **Implementation**: Executed by the store after the **Committed Value** is updated (used for side-effects like DB writes).
 
 ## 4. Developer Guardrails (The Laws)
-1. **Law of Decoupling**: No business logic in `<Node>`. Logic belongs in the store actions, the `Ports` configuration, or the wrapped component.
+1. **Law of Decoupling**: No business logic in `<Module>`. Logic belongs in the store actions, the `Ports` configuration, or the wrapped component.
 2. **Law of Binding**: All data entering or leaving a component must be declared in the `<Ports>` metadata.
-3. **Law of Identity**: Never use array indices as keys for nodes or ports; always use UUIDs.
+3. **Law of Identity**: Never use array indices as keys for modules or ports; always use UUIDs.
 4. **Law of Execution**: Long-running tasks **must** be implemented via `onProcess` to prevent blocking the main UI thread.
-5. **Law of Strict Typing**: Every port must have an explicit type descriptor. Type validation is performed in the store during connection creation to prevent invalid data flows and ensure system stability. This supports both primitives and custom domain-specific types.
+5. **Law of Strict Typing**: Every port must have an explicit type descriptor. Type validation is performed in the store during patch creation to prevent invalid data flows and ensure system stability. This supports both primitives and custom domain-specific types.
 6. **Law of Contextual Acyclicity**: The system manages cycles based on the execution context:
     *   **Reactive Flow (`onChange`)**: Cycles are permitted but governed by a "Circuit Breaker" (max propagation depth) to prevent browser-locking infinite loops.
-    *   **Imperative Flow (`onProcess`)**: Strict DAG enforcement is mandatory. The engine must block any connection that creates a closed loop to ensure jobs have a deterministic termination point.
+    *   **Imperative Flow (`onProcess`)**: Strict DAG enforcement is mandatory. The engine must block any link that creates a closed loop to ensure jobs have a deterministic termination point.
     *   **Temporal Flow (`onSample`)**: Cycles are explicitly permitted as "Feedback Loops," utilizing state-buffering from the previous frame ($t-1$) to maintain mathematical stability.
-7. **Law of Command**: Any structural modification to the graph topology (adding/removing nodes, ports, or connections) **must** be implemented via the `Command` pattern to ensure atomic undo/redo capability. Direct mutation of the topology outside of `executeCommand` is strictly forbidden.
+7. **Law of Command**: Any structural modification to the graph topology (adding/removing modules, ports, or links) **must** be implemented via the `Command` pattern to ensure atomic undo/redo capability. Direct mutation of the topology outside of `executeCommand` is strictly forbidden.
 8. **Law of Verification**: No logic shall be committed to the global store without corresponding unit tests. All tests must utilize `resetStore()` to ensure isolation and specifically verify the three pillars: Topology (legality/cycles), Execution (Data Quad lifecycle), and History (undo/redo atomicity).
 9. **Law of Attribution**: To maintain a transparent audit trail of human vs. AI contributions, every commit must include a footer identifying the AI's role using the following strict taxonomy:
     *   **Case A: AI-Generated Code/Logic**: If the AI wrote the actual code, implemented a feature, or fixed a bug.
@@ -89,12 +89,12 @@ Data in DAG Studio is not a single value, but a lifecycle. A Port manages four d
 
 ## 5. Design Philosophy: The Port-First Approach
 
-DAG Studio departs from traditional "Node-Edge" frameworks by treating the **Port** as the primary unit of logic and the **Node** as a secondary organizational unit.
+DAG Studio departs from traditional "Module-Link" frameworks by treating the **Port** as the primary unit of logic and the **Module** as a secondary organizational unit.
 
-* **The Node as a Spatial Group**: In this architecture, a `<Node>` is effectively a "dumb" grouping mechanism...
+* **The Module as a Spatial Group**: In this architecture, a `<Module>` is effectively a "dumb" grouping mechanism...
 * **The Ports Component as a Factory**: The `<Ports>` component is the actual "Binding Engine." It acts as a factory...
 * **Authority of Validation**: 
-    * **The Store** is the sole authority on **Connection Legality** (Type compatibility and Acyclicity).
+    * **The Store** is the sole authority on **Patch Legality** (Type compatibility and Acyclicity).
     * **The Ports Component** is the sole authority on **Component Interface** (Which ports are exposed and how they bind to the inner component).
 *   **Non-Exclusive Execution Modes**: The three execution modes (Reactive, Imperative, Persistent) are **complementary, not mutually exclusive**. A single port can implement multiple handlers to create a data stability gradient:
     *   `onChange` for immediate, low-precision UI feedback (**Draft Value**).
@@ -107,9 +107,9 @@ DAG Studio departs from traditional "Node-Edge" frameworks by treating the **Por
 ```jsx
 // UI components now simply subscribe to the store and trigger actions
 <DAGFlow>
-    <ConnectionCanvas /> {/* Purely renders lines from store.connections */}
+    <LinkCanvas /> {/* Purely renders links from store.links */}
     
-    <Node>
+    <Module>
         <Ports
             // Identity: UUID auto-generated by store registration
             inputs={[
@@ -135,7 +135,7 @@ DAG Studio departs from traditional "Node-Edge" frameworks by treating the **Por
         >
             <MyWorkerComponent ref={myComponentRef} />
         </Ports>
-    </Node>
+    </Module>
 </DAGFlow>
 ```
 
@@ -151,7 +151,7 @@ To maintain the integrity of the graph engine, all store logic must be verified 
 *   **Isolated State**: Tests must use a `resetStore()` utility in `beforeEach` to prevent state leakage between test cases.
 *   **Store Mocking**: Since the store is a singleton, use a dedicated `setupStoreMock()` to ensure a clean environment for Vitest.
 *   **Test Domains**:
-    *   **Topology Tests**: Focus on connection legality (Type matching) and graph theory (Acyclicity/Loop prevention).
+    *   **Topology Tests**: Focus on patch legality (Type matching) and graph theory (Acyclicity/Loop prevention).
     *   **Execution Tests**: Focus on the "Data Quad" lifecycle. Verify that `onChange` triggers propagation and that draft/computed/committed slots remain distinct.
     *   **History Tests**: Focus on the `Command` pattern. Every structural change must be testable via `undo()` and `redo()`, including the clearing of the forward stack upon new actions.
 *   **Mocking Side-Effects**: Use `vi.fn()` to spy on port handlers (like `onChange`) to verify that data flows through the graph as expected without needing to render the UI.

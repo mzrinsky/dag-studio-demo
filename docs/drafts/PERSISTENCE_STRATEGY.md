@@ -15,7 +15,7 @@ To avoid the computational cost of replaying thousands of events, the server imp
 ### A. Automatic Checkpoints
 The server automatically generates a full state dump (a "Snapshot") of the `useGraphStore` based on:
 *   **Interval**: Every 5 minutes of active editing.
-*   **Threshold**: Every 50 significant structural changes (e.g., adding/deleting nodes, changing connections).
+*   **Threshold**: Every 50 significant structural changes (e.g., adding/deleting modules, changing links).
 
 ### B. Manual Milestones
 Users can explicitly trigger a "Named Snapshot" (e.g., "v1.0 - Stable Architecture"). These milestones are persisted indefinitely and are immune to automatic cleanup.

@@ -3,7 +3,7 @@
 This document defines the internal mechanics of the `executionSlice` and the global store's responsibility in managing data propagation, signal processing, and graph integrity.
 
 ## 1. The Port Type System (`PortType`)
-To satisfy the **Law of Strict Typing**, connection validation is not based on JavaScript types, but on a defined union of descriptors.
+To satisfy the **Law of Strict Typing**, patch validation is not based on JavaScript types, but on a defined union of descriptors.
 
 ### Type Definition
 ```typescript
@@ -16,11 +16,11 @@ type PortType =
   | `custom:${string}`; // Allows for domain-specific types (e.g., custom:audio-signal)
 ```
 
-### Connection Validation (`canConnect`)
-The store must implement a validation check before any connection is committed to the topology:
+### Patch Validation (`canConnect`)
+The store must implement a validation check before any link is committed to the topology:
 1. **Type Matching**: Source Output Type must strictly equal Target Input Type.
 2. **Implicit Casting**: The system shall **not** perform implicit casting (e.g., number $\rightarrow$ string). Users must use an explicit "Adapter" to ensure data transparency.
-3. **Acyclicity Check**: Based on the **Law of Contextual Acyclicity**, a connection is blocked if it creates a loop AND the port involves `onProcess`.
+3. **Acyclicity Check**: Based on the **Law of Contextual Acyclicity**, a patch is blocked if it creates a loop AND the port involves `onProcess`.
 
 ---
 
@@ -45,12 +45,12 @@ Imperative flow is designed for high-precision jobs. It requires a deterministic
 ### The Execution Algorithm
 When a global "Run" signal is triggered:
 1. **Linearization**: The store performs a **Kahn's Algorithm** topological sort on the current graph topology.
-2. **Execution Queue**: Nodes are placed in a queue based on their dependency rank.
+2. **Execution Queue**: Modules are placed in a queue based on their dependency rank.
 3. **Sequential Processing**: 
-    - Execute `onProcess` for Node A.
+    - Execute `onProcess` for Module A.
     - Write result to **Computed Value** slot.
-    - Pass output to Node B's input.
-    - Repeat until the sink nodes are reached.
+    - Pass output to Module B's input.
+    - Repeat until the sink modules are reached.
 
 ### Error Handling
 If any `onProcess` handler throws an error, the execution chain for that branch is halted, and the port state is marked as `error`, preventing "stale" data from propagating downstream.

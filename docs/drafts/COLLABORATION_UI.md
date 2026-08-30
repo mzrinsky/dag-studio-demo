@@ -7,7 +7,7 @@
 ## 2. Locking Visuals
 When an object is locked by another user, the UI must prevent interaction and provide feedback.
 
-* **The Lock Mask**: A semi-transparent overlay or specific border style (e.g., dashed border in `presenceColor`) applied to the locked `Node` or `Port`.
+* **The Lock Mask**: A semi-transparent overlay or specific border style (e.g., dashed border in `presenceColor`) applied to the locked `Module` or `Port`.
 * **Interaction Guard**: 
     * Locked objects are non-draggable.
     * Input fields for locked ports are set to `read-only`.
@@ -23,4 +23,4 @@ When `hasRemoteUpdate: true`, the UI must guide the user to resolve the discrepa
     * **Comparison**: A side-by-side view of the local vs. remote value.
 
 ## 4. Spatial Conflict Feedback
-If a user attempts to move a node that is locked by another user, the UI provides a "bounce" animation or a "shake" effect to indicate the action is blocked.
+If a user attempts to move a module that is locked by another user, the UI provides a "bounce" animation or a "shake" effect to indicate the action is blocked.

@@ -23,9 +23,9 @@ export const setupStoreMock = () => {
 
 export const resetStore = () => {
   useGraphStore.setState({
-    nodes: {},
+    modules: {},
     ports: {},
-    connections: [],
+    links: [],
     handlerRegistry: {},
     nodeRefs: {},
     history: [],

@@ -2,24 +2,24 @@
 import React, { ReactNode, ReactElement, useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3'; // Import d3
 
-interface NodeProps {
+interface ModuleProps {
   title?: string;
   showTitle?: boolean;
   children: ReactNode;
   /** Optional wrapper element to use instead of the default Card wrapper. */
   wrapperElement?: React.ElementType<{ title?: string, showTitle?: boolean, ref?: React.Ref<HTMLDivElement>, style?: React.CSSProperties }>;
-  /** Callback fired when the node is dropped, passing new {x, y} coordinates. */
+  /** Callback fired when the module is dropped, passing new {x, y} coordinates. */
   onDragEnd?: (x: number, y: number) => void;
-  /** Initial position for the node (optional). */
+  /** Initial position for the module (optional). */
   initialX?: number;
   initialY?: number;
 }
 
 /**
- * Node Component: The structural shell container.
+ * Module Shell: The structural shell container.
  * It houses the Ports, providing visual encapsulation.
  */
-const Node: React.FC<NodeProps> = ({ title, showTitle, children, wrapperElement, onDragEnd, initialX = 0, initialY = 0 }) => {
+const Module: React.FC<ModuleProps> = ({ title, showTitle, children, wrapperElement, onDragEnd, initialX = 0, initialY = 0 }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   // State to track the current position for live preview
   const [position, setPosition] = useState({ x: initialX, y: initialY });
@@ -38,27 +38,27 @@ const Node: React.FC<NodeProps> = ({ title, showTitle, children, wrapperElement,
       .on("start", (event) => {
         // Get current element position
         const rect = element.getBoundingClientRect();
-        
-        // The offset is the distance from the mouse click to the top-left of the node
+
+        // The offset is the distance from the mouse click to the top-left of the module
         // event.x/y are usually already relative to the container in d3-drag
         // but to be safe and consistent with absolute positioning:
         dragOffset.current = {
              x: event.x - position.x,
              y: event.y - position.y
          };
-        
+
         element.style.cursor = 'grabbing';
       })
       .on("drag", (event) => {
         // New position is simply the current event coordinates minus our initial offset
         const newX = event.x - dragOffset.current.x;
         const newY = event.y - dragOffset.current.y;
-        
+
         setPosition({ x: newX, y: newY });
       })
       .on("end", (event) => {
-        // We use the current state values rather than event.x/y 
-        // because event.x/y are the cursor's position, not the node's position
+        // We use the current state values rather than event.x/y
+        // because event.x/y are the cursor's position, not the module's position
         if (onDragEnd) {
             onDragEnd(position.x, position.y);
         }
@@ -71,7 +71,7 @@ const Node: React.FC<NodeProps> = ({ title, showTitle, children, wrapperElement,
     return () => {
       d3.select(element).on(".drag", null);
     };
-  }, [onDragEnd, position]); // Added position to dependencies to ensure correct offset calculation
+  }, [onDragEnd, position]); // Ensure correct offset calculation
 
   // Determine the base class for styling
   const baseClasses = "w-64 gap-0 shadow-xl border-2 border-indigo-300 bg-white/95 p-4 absolute transition-none";
@@ -82,17 +82,17 @@ const Node: React.FC<NodeProps> = ({ title, showTitle, children, wrapperElement,
     left: 0,
     top: 0,
     cursor: 'grab',
-    position: 'absolute', 
+    position: 'absolute',
   };
 
  // If a custom wrapper is provided, use it as a Component
   if (wrapperElement) {
     const Wrapper = wrapperElement;
     return (
-      <Wrapper 
-        title={title} 
-        showTitle={showTitle} 
-        ref={nodeRef} 
+      <Wrapper
+        title={title}
+        showTitle={showTitle}
+        ref={nodeRef}
         style={style}
       >
         {children}
@@ -111,14 +111,11 @@ const Node: React.FC<NodeProps> = ({ title, showTitle, children, wrapperElement,
       {title && showTitle !== false && (
         <h3 className="text-lg font-semibold text-indigo-700">{title}</h3>
       )}
-      {/* The Ports component is now responsible for receiving the metadata (inputs/outputs) 
-          and wrapping the children, making Node purely structural. */}
+      {/* The Ports component is now responsible for receiving the metadata (inputs/outputs)
+          and wrapping the children, making Module purely structural. */}
       {children}
     </div>
   );
 };
 
-export default Node;
-
-
-
+export default Module;

@@ -7,8 +7,8 @@ setupStoreMock();
 describe("History Slice", () => {
   beforeEach(() => resetStore());
 
-  it("should undo and redo node creation", () => {
-    const node = {
+  it("should undo and redo module creation", () => {
+    const module = {
       id: "n1",
       position: { x: 0, y: 0 },
       zIndex: 1,
@@ -17,7 +17,7 @@ describe("History Slice", () => {
     const ports = [
       {
         id: "p1",
-        nodeId: "n1",
+        moduleId: "n1",
         label: "p1",
         type: "any",
         direction: "in",
@@ -29,20 +29,20 @@ describe("History Slice", () => {
     ];
 
     // Action
-    useGraphStore.getState().addNode(node, ports);
-    expect(useGraphStore.getState().nodes["n1"]).toBeDefined();
+    useGraphStore.getState().addModule(module, ports);
+    expect(useGraphStore.getState().modules["n1"]).toBeDefined();
 
     // Undo
     useGraphStore.getState().undo();
-    expect(useGraphStore.getState().nodes["n1"]).toBeUndefined();
+    expect(useGraphStore.getState().modules["n1"]).toBeUndefined();
 
     // Redo
     useGraphStore.getState().redo();
-    expect(useGraphStore.getState().nodes["n1"]).toBeDefined();
+    expect(useGraphStore.getState().modules["n1"]).toBeDefined();
   });
 
   it("should clear forward history when a new action is performed after undo", () => {
-    const node1 = {
+    const module1 = {
       id: "n1",
       position: { x: 0, y: 0 },
       zIndex: 1,
@@ -51,7 +51,7 @@ describe("History Slice", () => {
     const ports1 = [
       {
         id: "p1",
-        nodeId: "n1",
+        moduleId: "n1",
         label: "p1",
         type: "any",
         direction: "in",
@@ -62,11 +62,11 @@ describe("History Slice", () => {
       },
     ];
 
-    useGraphStore.getState().addNode(node1, ports1);
+    useGraphStore.getState().addModule(module1, ports1);
     useGraphStore.getState().undo();
 
     // New action should wipe redo stack
-    const node2 = {
+    const module2 = {
       id: "n2",
       position: { x: 10, y: 10 },
       zIndex: 1,
@@ -75,7 +75,7 @@ describe("History Slice", () => {
     const ports2 = [
       {
         id: "p2",
-        nodeId: "n2",
+        moduleId: "n2",
         label: "p2",
         type: "any",
         direction: "in",
@@ -85,10 +85,10 @@ describe("History Slice", () => {
         computedValue: 0,
       },
     ];
-    useGraphStore.getState().addNode(node2, ports2);
+    useGraphStore.getState().addModule(module2, ports2);
 
     useGraphStore.getState().redo(); // Should do nothing
-    expect(useGraphStore.getState().nodes["n1"]).toBeUndefined();
-    expect(useGraphStore.getState().nodes["n2"]).toBeDefined();
+    expect(useGraphStore.getState().modules["n1"]).toBeUndefined();
+    expect(useGraphStore.getState().modules["n2"]).toBeDefined();
   });
 });

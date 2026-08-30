@@ -1,5 +1,5 @@
 import { StateCreator } from "zustand";
-import { GraphState, NodeState, PortState, PortType, ConnectionState } from "./types";
+import { GraphState, ModuleState, PortState, PortType, LinkState } from "./types";
 
 const TYPE_COMPATIBILITY: Record<PortType, Set<PortType>> = {
   any: new Set(["any", "number", "string", "boolean"]),
@@ -8,7 +8,7 @@ const TYPE_COMPATIBILITY: Record<PortType, Set<PortType>> = {
   boolean: new Set(["any", "boolean"]),
 };
 
-const isValidConnection = (
+const isValidPatch = (
   sourceType: PortType,
   targetType: PortType,
 ): boolean => {
@@ -16,25 +16,25 @@ const isValidConnection = (
 };
 
 const wouldCreateCycle = (
-  sourceNodeId: string,
-  targetNodeId: string,
-  connections: ConnectionState[],
+  sourceModuleId: string,
+  targetModuleId: string,
+  links: LinkState[],
   ports: Record<string, PortState>,
 ): boolean => {
   const adjList: Record<string, string[]> = {};
-  connections.forEach((conn) => {
-    const s = ports[conn.sourcePortId]?.nodeId;
-    const t = ports[conn.targetPortId]?.nodeId;
+  links.forEach((link) => {
+    const s = ports[link.sourcePortId]?.moduleId;
+    const t = ports[link.targetPortId]?.moduleId;
     if (s && t) {
       if (!adjList[s]) adjList[s] = [];
       adjList[s].push(t);
     }
   });
   const visited = new Set<string>();
-  const stack = [targetNodeId];
+  const stack = [targetModuleId];
   while (stack.length > 0) {
     const node = stack.pop()!;
-    if (node === sourceNodeId) return true;
+    if (node === sourceModuleId) return true;
     if (!visited.has(node)) {
       visited.add(node);
       stack.push(...(adjList[node] || []));
@@ -45,14 +45,14 @@ const wouldCreateCycle = (
 
 // 1. Define the TopologySlice interface
 export interface TopologySlice {
-  nodes: Record<string, NodeState>;
+  modules: Record<string, ModuleState>;
   ports: Record<string, PortState>;
-  connections: ConnectionState[];
-  updateNodePosition: (id: string, x: number, y: number) => void;
+  links: LinkState[];
+  updateModulePosition: (id: string, x: number, y: number) => void;
   bringToFront: (id: string) => void;
-  addNode: (node: NodeState, ports: PortState[]) => void;
-  removeNode: (id: string) => void;
-  addConnection: (sourcePortId: string, targetPortId: string) => void;
+  addModule: (module: ModuleState, ports: PortState[]) => void;
+  removeModule: (id: string) => void;
+  addPatch: (sourcePortId: string, targetPortId: string) => void;
 }
 
 // 2. Use the Immer-aware StateCreator generic
@@ -62,35 +62,35 @@ export const createTopologySlice: StateCreator<
   [],
   TopologySlice
 > = (set, get) => ({
-  nodes: {},
+  modules: {},
   ports: {},
-  connections: [],
+  links: [],
 
-  updateNodePosition: (id, x, y) =>
+  updateModulePosition: (id, x, y) =>
     set((state) => {
-      if (state.nodes[id]) {
-        state.nodes[id].position = { x, y };
+      if (state.modules[id]) {
+        state.modules[id].position = { x, y };
       }
     }),
 
   bringToFront: (id) =>
     set((state) => {
-      const nodes = Object.values(state.nodes);
-      if (nodes.length === 0) return;
-      const maxZ = nodes.reduce((max, n) => Math.max(max, n.zIndex), 0);
-      if (state.nodes[id]) state.nodes[id] = { ...state.nodes[id], zIndex: maxZ + 1 };
+      const modules = Object.values(state.modules);
+      if (modules.length === 0) return;
+      const maxZ = modules.reduce((max, n) => Math.max(max, n.zIndex), 0);
+      if (state.modules[id]) state.modules[id] = { ...state.modules[id], zIndex: maxZ + 1 };
     }),
 
-  addNode: (node, ports) => {
+  addModule: (module, ports) => {
     get().executeCommand({
       execute: (s) => {
-        s.nodes[node.id] = node;
+        s.modules[module.id] = module;
         ports.forEach((p) => {
           s.ports[p.id] = p;
         });
       },
       undo: (s) => {
-        delete s.nodes[node.id];
+        delete s.modules[module.id];
         ports.forEach((p) => {
           delete s.ports[p.id];
         });
@@ -98,55 +98,55 @@ export const createTopologySlice: StateCreator<
     });
   },
 
-  removeNode: (id) => {
-    const { nodes, ports, connections } = get();
-    const node = nodes[id];
-    const associatedPorts = Object.values(ports).filter((p) => p.nodeId === id);
+  removeModule: (id) => {
+    const { modules, ports, links } = get();
+    const module = modules[id];
+    const associatedPorts = Object.values(ports).filter((p) => p.moduleId === id);
     const portIds = new Set(associatedPorts.map((p) => p.id));
-    const associatedConns = connections.filter(
-      (c: ConnectionState) => portIds.has(c.sourcePortId) || portIds.has(c.targetPortId),
+    const associatedLinks = links.filter(
+      (c: LinkState) => portIds.has(c.sourcePortId) || portIds.has(c.targetPortId),
     );
 
     get().executeCommand({
       execute: (s) => {
-        delete s.nodes[id];
+        delete s.modules[id];
         associatedPorts.forEach((p) => {
           delete s.ports[p.id];
         });
-        s.connections = s.connections.filter(
-          (c: ConnectionState) => !portIds.has(c.sourcePortId) && !portIds.has(c.targetPortId),
+        s.links = s.links.filter(
+          (c: LinkState) => !portIds.has(c.sourcePortId) && !portIds.has(c.targetPortId),
         );
       },
       undo: (s) => {
-        s.nodes[id] = node!;
+        s.modules[id] = module!;
         associatedPorts.forEach((p) => {
           s.ports[p.id] = p;
         });
-        s.connections.push(...associatedConns);
+        s.links.push(...associatedLinks);
       },
     });
   },
 
-  addConnection: (sourcePortId, targetPortId) => {
-    const { ports, connections } = get();
+  addPatch: (sourcePortId, targetPortId) => {
+    const { ports, links } = get();
     const source = ports[sourcePortId];
     const target = ports[targetPortId];
     if (!source || !target || sourcePortId === targetPortId) return;
-    if (!isValidConnection(source.type, target.type)) return;
-    if (wouldCreateCycle(source.nodeId, target.nodeId, connections, ports))
+    if (!isValidPatch(source.type, target.type)) return;
+    if (wouldCreateCycle(source.moduleId, target.moduleId, links, ports))
       return;
 
     get().executeCommand({
       execute: (s) => {
-        s.connections.push({
+        s.links.push({
           id: crypto.randomUUID(),
           sourcePortId,
           targetPortId,
         });
       },
       undo: (s) => {
-        s.connections = s.connections.filter(
-          (c: ConnectionState) =>
+        s.links = s.links.filter(
+          (c: LinkState) =>
             !(
               c.sourcePortId === sourcePortId && c.targetPortId === targetPortId
             ),

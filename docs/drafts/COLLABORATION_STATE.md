@@ -7,7 +7,7 @@ To prevent "state jitter," the collaboration layer distinguishes between local-o
 | :--- | :--- | :--- | :--- |
 | **Draft Value** | Local | N/A | No |
 | **Committed Value** | Shared | `onCommit` | Yes |
-| **Node Position** | Shared | On Drag Release | Yes |
+| **Module Position** | Shared | On Drag Release | Yes |
 | **Presence** | Shared | Real-time (High Freq) | No |
 | **Locks** | Shared | Real-time (Event-driven) | No |
 
@@ -21,7 +21,7 @@ interface UserPresence {
   presenceColor: string;
   avatarUrl?: string;
   cursor: { x: number; y: number };
-  focusedObjectId?: string; // The ID of the node/port currently selected
+  focusedObjectId?: string; // The ID of the module/port currently selected
 }
 ```
 
@@ -44,16 +44,16 @@ interface ObjectLock {
 Locks propagate upwards, but only within their own functional domain to prevent productivity bottlenecks:
 
 *   **SPATIAL Lock (Movement)**:
-    *   **Port → Node**: If a `Port` is being used to create a connection, the parent `Node` is implicitly `SPATIAL` locked. This prevents other users from moving the node while a connection is being anchored to it.
+    *   **Port → Module**: If a `Port` is being used to create a patch, the parent `Module` is implicitly `SPATIAL` locked. This prevents other users from moving the module while a patch is being anchored to it.
     *   **Impact**: Blocks `drag` events; does **not** block data editing.
 *   **STRUCTURAL Lock (Topology)**:
-    *   **Node → Port**: If a `Node` is being deleted or reconfigured, all child `Ports` are `STRUCTURAL` locked.
-    *   **Impact**: Blocks new connections or port deletions; does **not** block value updates.
+    *   **Module → Port**: If a `Module` is being deleted or reconfigured, all child `Ports` are `STRUCTURAL` locked.
+    *   **Impact**: Blocks new patches or port deletions; does **not** block value updates.
 *   **DATA Lock (Value)**:
     *   **Port → Port**: A lock on a specific port's value.
     *   **Impact**: Sets the input field to `read-only`.
 
-**Crucially**: A `SPATIAL` lock on a Node does **not** trigger a `DATA` lock on its Ports. Users can continue to edit values inside a node even while another user is moving that node across the canvas.
+**Crucially**: A `SPATIAL` lock on a Module does **not** trigger a `DATA` lock on its Ports. Users can continue to edit values inside a module even while another user is moving that module across the canvas.
 
 ## 4. The Conflict State ("The Fifth State")
 A conflict occurs when the system detects a divergence between the local "Draft" state and the shared "Committed" state. 

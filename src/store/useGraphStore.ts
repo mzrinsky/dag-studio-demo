@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { GraphState } from './types';
 import { createTopologySlice } from './topologySlice';
@@ -15,6 +15,15 @@ export const useGraphStore = create<GraphState>()(
     })),
     {
       name: 'dag-studio-storage',
+      // Check if window is defined (browser). 
+      // If not (test/node environment), use a mock storage object to prevent the error.
+      storage: typeof window !== 'undefined' 
+        ? createJSONStorage() 
+        : {
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+          },
       partialize: (state) => ({
         modules: state.modules,
         ports: state.ports,
